@@ -111,10 +111,7 @@ class VEConv(nn.Module):
             nn.Softplus(beta=0.5, threshold=14),
             nn.Linear(feats, feats)
         )
-        if update_edge:
-            self.update_edge_feats = nn.Linear(feats, feats)
-        else:
-            self.update_edge_feats = None
+        self.update_edge_feats = nn.Linear(feats, feats) if update_edge else None
 
     def reset_parameters(self):
         """Reinitialize model parameters."""

@@ -25,7 +25,7 @@ def run_a_train_epoch(args, epoch, model, data_loader,
                       loss_criterion, optimizer):
     model.train()
     train_meter = Meter()
-    for batch_id, batch_data in enumerate(data_loader):
+    for batch_data in data_loader:
         smiles, bg, labels, masks = batch_data
         labels, masks = labels.to(args['device']), masks.to(args['device'])
         prediction = regress(args, model, bg)
@@ -42,7 +42,7 @@ def run_an_eval_epoch(args, model, data_loader):
     model.eval()
     eval_meter = Meter()
     with torch.no_grad():
-        for batch_id, batch_data in enumerate(data_loader):
+        for batch_data in data_loader:
             smiles, bg, labels, masks = batch_data
             labels = labels.to(args['device'])
             prediction = regress(args, model, bg)

@@ -47,7 +47,7 @@ def have_slots(fa_slots, ch_slots):
             if a1 == a2 and c1 == c2 and (a1 != "C" or h1 + h2 >= 4):
                 matches.append((i, j))
 
-    if len(matches) == 0:
+    if not matches:
         return False
 
     fa_match, ch_match = list(zip(*matches))
@@ -155,12 +155,7 @@ class DGLJTNNDecoder(nn.Module):
                 'src_x': edges.src['x'], 'dst_x': edges.dst['x']},
         )
 
-        # input tensors for stop prediction (p) and label prediction (q)
-        p_inputs = []
         p_targets = []
-        q_inputs = []
-        q_targets = []
-
         # Predict root
         mol_tree_batch.pull(
             root_ids,
@@ -171,12 +166,11 @@ class DGLJTNNDecoder(nn.Module):
         # Extract hidden states and store them for stop/label prediction
         h = mol_tree_batch.nodes[root_ids].data['h']
         x = mol_tree_batch.nodes[root_ids].data['x']
-        p_inputs.append(torch.cat([x, h, tree_vec], 1))
+        p_inputs = [torch.cat([x, h, tree_vec], 1)]
         # If the out degree is 0 we don't generate any edges at all
         root_out_degrees = mol_tree_batch.out_degrees(root_ids)
-        q_inputs.append(torch.cat([h, tree_vec], 1))
-        q_targets.append(mol_tree_batch.nodes[root_ids].data['wid'])
-
+        q_inputs = [torch.cat([h, tree_vec], 1)]
+        q_targets = [mol_tree_batch.nodes[root_ids].data['wid']]
         # Traverse the tree and predict on children
         for eid, p in dfs_order(mol_tree_batch, root_ids):
             u, v = mol_tree_batch.find_edges(eid)
@@ -214,15 +208,15 @@ class DGLJTNNDecoder(nn.Module):
             h = n_repr['h']
             x = n_repr['x']
             tree_vec_set = tree_vec[root_out_degrees >= 0]
-            wid = n_repr['wid']
             p_inputs.append(torch.cat([x, h, tree_vec_set], 1))
             # Only newly generated nodes are needed for label prediction
             # NOTE: The following works since the uncomputed messages are zeros.
 
             q_input = torch.cat([h, tree_vec_set], 1)[is_new]
-            q_target = wid[is_new]
             if q_input.shape[0] > 0:
                 q_inputs.append(q_input)
+                wid = n_repr['wid']
+                q_target = wid[is_new]
                 q_targets.append(q_target)
         p_targets.append(torch.zeros((root_out_degrees == 0).sum()).long())
 
@@ -240,7 +234,7 @@ class DGLJTNNDecoder(nn.Module):
         ) / n_trees
         q_loss = F.cross_entropy(q, q_targets, reduction='sum') / n_trees
         p_acc = ((p > 0).long() == p_targets).sum().float() / \
-            p_targets.shape[0]
+                p_targets.shape[0]
         q_acc = (q.max(1)[1] == q_targets).float().sum() / q_targets.shape[0]
 
         self.q_inputs = q_inputs
@@ -283,7 +277,7 @@ class DGLJTNNDecoder(nn.Module):
         new_node_id = 0
         new_edge_id = 0
 
-        for step in range(max_decode_len):
+        for _ in range(max_decode_len):
             u, u_slots = stack[-1]
             udata = mol_tree.g.nodes[u].data
             x = udata['x']

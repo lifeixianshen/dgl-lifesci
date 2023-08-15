@@ -38,15 +38,16 @@ if __name__ == '__main__':
 
     # Get the vocabulary used for the pre-trained model
     default_dir = get_download_dir()
-    vocab_file = '{}/jtvae/{}.txt'.format(default_dir, 'vocab')
+    vocab_file = f'{default_dir}/jtvae/vocab.txt'
     if not os.path.exists(vocab_file):
-        zip_file_path = '{}/jtvae.zip'.format(default_dir)
+        zip_file_path = f'{default_dir}/jtvae.zip'
         download(_get_dgl_url('dataset/jtvae.zip'), path=zip_file_path)
-        extract_archive(zip_file_path, '{}/jtvae'.format(default_dir))
+        extract_archive(zip_file_path, f'{default_dir}/jtvae')
     default_vocab = set()
     with open(vocab_file, 'r') as f:
         for line in f:
             default_vocab.add(line.strip())
 
-    print('The new vocabulary is a subset of the default vocabulary: {}'.format(
-        vocab.issubset(default_vocab)))
+    print(
+        f'The new vocabulary is a subset of the default vocabulary: {vocab.issubset(default_vocab)}'
+    )

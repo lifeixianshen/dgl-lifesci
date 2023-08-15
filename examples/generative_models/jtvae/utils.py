@@ -24,11 +24,9 @@ def get_vocab_file(vocab):
     str
         The path to a vocabulary file.
     """
-    if vocab == 'zinc':
-        vocab_file = '{}/jtnn/vocab.txt'.format(dir)
-    elif vocab == 'guacamol':
-        vocab_file = '{}/jtnn/vocab_guacamol.txt'.format(dir)
+    if vocab == 'guacamol':
+        return f'{dir}/jtnn/vocab_guacamol.txt'
+    elif vocab == 'zinc':
+        return f'{dir}/jtnn/vocab.txt'
     else:
-        vocab_file = vocab
-
-    return vocab_file
+        return vocab

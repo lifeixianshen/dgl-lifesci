@@ -43,7 +43,7 @@ def main(rank, dev_id, args):
     if dev_id == -1:
         args['device'] = torch.device('cpu')
     else:
-        args['device'] = torch.device('cuda:{}'.format(dev_id))
+        args['device'] = torch.device(f'cuda:{dev_id}')
         # Set current device
         torch.cuda.set_device(args['device'])
 

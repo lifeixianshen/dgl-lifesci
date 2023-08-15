@@ -33,8 +33,11 @@ class MLPNodeReadout(nn.Module):
     def __init__(self, node_feats, hidden_feats, graph_feats, activation=None, mode='sum'):
         super(MLPNodeReadout, self).__init__()
 
-        assert mode in ['max', 'mean', 'sum'], \
-            "Expect mode to be 'max' or 'mean' or 'sum', got {}".format(mode)
+        assert mode in [
+            'max',
+            'mean',
+            'sum',
+        ], f"Expect mode to be 'max' or 'mean' or 'sum', got {mode}"
         self.mode = mode
         self.in_project = nn.Linear(node_feats, hidden_feats)
         self.activation = activation

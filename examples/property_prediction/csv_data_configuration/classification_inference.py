@@ -99,8 +99,9 @@ if __name__ == '__main__':
         from dgllife.utils import load_smiles_from_txt
         smiles = load_smiles_from_txt(args['file_path'])
     else:
-        raise ValueError('Expect the input data file to be a .csv or a .txt file, '
-                         'got {}'.format(args['file_path']))
+        raise ValueError(
+            f"Expect the input data file to be a .csv or a .txt file, got {args['file_path']}"
+        )
     args['smiles'] = smiles
     args = init_featurizer(args)
 

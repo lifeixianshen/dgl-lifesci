@@ -149,9 +149,9 @@ class GCN(nn.Module):
             dropout = [0. for _ in range(n_layers)]
         lengths = [len(hidden_feats), len(gnn_norm), len(activation),
                    len(residual), len(batchnorm), len(dropout)]
-        assert len(set(lengths)) == 1, 'Expect the lengths of hidden_feats, gnn_norm, ' \
-                                       'activation, residual, batchnorm and dropout to ' \
-                                       'be the same, got {}'.format(lengths)
+        assert (
+            len(set(lengths)) == 1
+        ), f'Expect the lengths of hidden_feats, gnn_norm, activation, residual, batchnorm and dropout to be the same, got {lengths}'
 
         self.hidden_feats = hidden_feats
         self.gnn_layers = nn.ModuleList()

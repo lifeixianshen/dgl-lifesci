@@ -21,7 +21,7 @@ def run_a_train_epoch(args, epoch, model, data_loader,
     model.train()
     train_meter = Meter(args['train_mean'], args['train_std'])
     epoch_loss = 0
-    for batch_id, batch_data in enumerate(data_loader):
+    for batch_data in data_loader:
         indices, ligand_mols, protein_mols, bg, labels = batch_data
         labels, bg = labels.to(args['device']), bg.to(args['device'])
         prediction = model(bg)
@@ -43,14 +43,15 @@ def run_an_eval_epoch(args, model, data_loader):
     model.eval()
     eval_meter = Meter(args['train_mean'], args['train_std'])
     with torch.no_grad():
-        for batch_id, batch_data in enumerate(data_loader):
+        for batch_data in data_loader:
             indices, ligand_mols, protein_mols, bg, labels = batch_data
             labels, bg = labels.to(args['device']), bg.to(args['device'])
             prediction = model(bg)
             eval_meter.update(prediction, labels)
-    total_scores = {metric: eval_meter.compute_metric(metric, 'mean')
-                    for metric in args['metrics']}
-    return total_scores
+    return {
+        metric: eval_meter.compute_metric(metric, 'mean')
+        for metric in args['metrics']
+    }
 
 def main(args):
     args['device'] = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

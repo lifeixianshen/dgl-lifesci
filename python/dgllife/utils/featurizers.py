@@ -873,7 +873,7 @@ class BaseAtomFeaturizer(object):
     def __init__(self, featurizer_funcs, feat_sizes=None):
         self.featurizer_funcs = featurizer_funcs
         if feat_sizes is None:
-            feat_sizes = dict()
+            feat_sizes = {}
         self._feat_sizes = feat_sizes
 
     def feat_size(self, feat_name=None):
@@ -893,12 +893,13 @@ class BaseAtomFeaturizer(object):
         """
         if feat_name is None:
             assert len(self.featurizer_funcs) == 1, \
-                'feat_name should be provided if there are more than one features'
+                    'feat_name should be provided if there are more than one features'
             feat_name = list(self.featurizer_funcs.keys())[0]
 
         if feat_name not in self.featurizer_funcs:
-            return ValueError('Expect feat_name to be in {}, got {}'.format(
-                list(self.featurizer_funcs.keys()), feat_name))
+            return ValueError(
+                f'Expect feat_name to be in {list(self.featurizer_funcs.keys())}, got {feat_name}'
+            )
 
         if feat_name not in self._feat_sizes:
             atom = Chem.MolFromSmiles('C').GetAtomWithIdx(0)
@@ -931,7 +932,7 @@ class BaseAtomFeaturizer(object):
                 atom_features[feat_name].append(feat_func(atom))
 
         # Stack the features and convert them to float arrays
-        processed_features = dict()
+        processed_features = {}
         for feat_name, feat_list in atom_features.items():
             feat = np.stack(feat_list)
             processed_features[feat_name] = F.zerocopy_from_numpy(feat.astype(np.float32))
@@ -1634,7 +1635,7 @@ class BaseBondFeaturizer(object):
     def __init__(self, featurizer_funcs, feat_sizes=None, self_loop=False):
         self.featurizer_funcs = featurizer_funcs
         if feat_sizes is None:
-            feat_sizes = dict()
+            feat_sizes = {}
         self._feat_sizes = feat_sizes
         self._self_loop = self_loop
 
@@ -1655,12 +1656,13 @@ class BaseBondFeaturizer(object):
         """
         if feat_name is None:
             assert len(self.featurizer_funcs) == 1, \
-                'feat_name should be provided if there are more than one features'
+                    'feat_name should be provided if there are more than one features'
             feat_name = list(self.featurizer_funcs.keys())[0]
 
         if feat_name not in self.featurizer_funcs:
-            return ValueError('Expect feat_name to be in {}, got {}'.format(
-                list(self.featurizer_funcs.keys()), feat_name))
+            return ValueError(
+                f'Expect feat_name to be in {list(self.featurizer_funcs.keys())}, got {feat_name}'
+            )
 
         mol = Chem.MolFromSmiles('CCO')
         feats = self(mol)
@@ -1693,15 +1695,14 @@ class BaseBondFeaturizer(object):
                 bond_features[feat_name].extend([feat, feat.copy()])
 
         # Stack the features and convert them to float arrays
-        processed_features = dict()
+        processed_features = {}
         for feat_name, feat_list in bond_features.items():
             feat = np.stack(feat_list)
             processed_features[feat_name] = F.zerocopy_from_numpy(feat.astype(np.float32))
 
         if self._self_loop and num_bonds > 0:
             num_atoms = mol.GetNumAtoms()
-            for feat_name in processed_features:
-                feats = processed_features[feat_name]
+            for feat_name, feats in processed_features.items():
                 feats = torch.cat([feats, torch.zeros(feats.shape[0], 1)], dim=1)
                 self_loop_feats = torch.zeros(num_atoms, feats.shape[1])
                 self_loop_feats[:, -1] = 1

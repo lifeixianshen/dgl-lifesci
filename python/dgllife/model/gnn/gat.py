@@ -77,11 +77,7 @@ class GATLayer(nn.Module):
               out_feats * num_heads in initialization otherwise.
         """
         feats = self.gat_conv(bg, feats)
-        if self.agg_mode == 'flatten':
-            feats = feats.flatten(1)
-        else:
-            feats = feats.mean(1)
-
+        feats = feats.flatten(1) if self.agg_mode == 'flatten' else feats.mean(1)
         if self.activation is not None:
             feats = self.activation(feats)
 
@@ -154,10 +150,9 @@ class GAT(nn.Module):
             activations.append(None)
         lengths = [len(hidden_feats), len(num_heads), len(feat_drops), len(attn_drops),
                    len(alphas), len(residuals), len(agg_modes), len(activations)]
-        assert len(set(lengths)) == 1, 'Expect the lengths of hidden_feats, num_heads, ' \
-                                       'feat_drops, attn_drops, alphas, residuals, ' \
-                                       'agg_modes and activations to be the same, ' \
-                                       'got {}'.format(lengths)
+        assert (
+            len(set(lengths)) == 1
+        ), f'Expect the lengths of hidden_feats, num_heads, feat_drops, attn_drops, alphas, residuals, agg_modes and activations to be the same, got {lengths}'
         self.hidden_feats = hidden_feats
         self.num_heads = num_heads
         self.agg_modes = agg_modes

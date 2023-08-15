@@ -72,9 +72,7 @@ class WLNLinear(nn.Module):
 
     def extra_repr(self):
         """Return a description of the layer."""
-        return 'in_feats={}, out_feats={}, bias={}'.format(
-            self.in_feats, self.out_feats, self.bias is not None
-        )
+        return f'in_feats={self.in_feats}, out_feats={self.out_feats}, bias={self.bias is not None}'
 
 class WLN(nn.Module):
     """Weisfeiler-Lehman Network (WLN)
@@ -180,10 +178,9 @@ class WLN(nn.Module):
 
         if not self.set_comparison:
             return node_feats
-        else:
-            g = g.local_var()
-            g.ndata['hv'] = self.project_node_messages(node_feats)
-            g.edata['he'] = self.project_edge_messages(edge_feats)
-            g.update_all(fn.u_mul_e('hv', 'he', 'm'), fn.sum('m', 'h_nbr'))
-            h_self = self.project_self(node_feats)  # (V, node_out_feats)
-            return g.ndata['h_nbr'] * h_self
+        g = g.local_var()
+        g.ndata['hv'] = self.project_node_messages(node_feats)
+        g.edata['he'] = self.project_edge_messages(edge_feats)
+        g.update_all(fn.u_mul_e('hv', 'he', 'm'), fn.sum('m', 'h_nbr'))
+        h_self = self.project_self(node_feats)  # (V, node_out_feats)
+        return g.ndata['h_nbr'] * h_self

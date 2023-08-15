@@ -71,8 +71,8 @@ def init_hyper_space(model):
     dict
         Mapping hyperparameter names to the associated search spaces
     """
-    candidate_hypers = dict()
-    candidate_hypers.update(common_hyperparameters)
+    candidate_hypers = {}
+    candidate_hypers |= common_hyperparameters
     if model == 'GCN':
         candidate_hypers.update(gcn_hyperparameters)
     elif model == 'GAT':
@@ -87,5 +87,5 @@ def init_hyper_space(model):
                    'gin_supervised_edgepred', 'gin_supervised_masking']:
         candidate_hypers.update(gin_pretrained_hyperparameters)
     else:
-        return ValueError('Unexpected model: {}'.format(model))
+        return ValueError(f'Unexpected model: {model}')
     return candidate_hypers

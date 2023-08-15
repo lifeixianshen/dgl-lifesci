@@ -148,9 +148,10 @@ def test_wln_reaction():
             l = lines[i].strip()
             react = reactions[i].strip()
             bond_changes = get_bond_changes(react)
-            assert l == '{} {}'.format(
-                react,
-                ';'.join(['{}-{}-{}'.format(x[0], x[1], x[2]) for x in bond_changes]))
+            assert (
+                l
+                == f"{react} {';'.join([f'{x[0]}-{x[1]}-{x[2]}' for x in bond_changes])}"
+            )
     remove_file('test.txt.proc')
 
     # Test configured dataset
@@ -158,12 +159,14 @@ def test_wln_reaction():
     remove_file('test_graphs.bin')
 
     with open('test_candidate_bond_changes.txt', 'w') as f:
-        for reac in reactions:
-            # simulate fake candidate bond changes
-            candidate_string = ''
-            for i in range(2):
-                candidate_string += '{} {} {:.1f} {:.3f};'.format(i+1, i+2, 0.0, 0.234)
-            candidate_string += '\n'
+        for _ in reactions:
+            candidate_string = (
+                ''.join(
+                    '{} {} {:.1f} {:.3f};'.format(i + 1, i + 2, 0.0, 0.234)
+                    for i in range(2)
+                )
+                + '\n'
+            )
             f.write(candidate_string)
 
     dataset = WLNRankDataset('test.txt.proc', 'test_candidate_bond_changes.txt', 'train')
@@ -208,10 +211,10 @@ def test_jtvae():
             f.write(smi + '\n')
 
     default_dir = get_download_dir()
-    vocab_file = '{}/jtnn/{}.txt'.format(default_dir, 'vocab')
-    zip_file_path = '{}/jtnn.zip'.format(default_dir)
+    vocab_file = f'{default_dir}/jtnn/vocab.txt'
+    zip_file_path = f'{default_dir}/jtnn.zip'
     download(_get_dgl_url('dataset/jtnn.zip'), path=zip_file_path, overwrite=False)
-    extract_archive(zip_file_path, '{}/jtnn'.format(default_dir))
+    extract_archive(zip_file_path, f'{default_dir}/jtnn')
 
     with open(vocab_file, 'r') as f:
         vocab = Vocab([x.strip("\r\n ") for x in f])
@@ -229,7 +232,7 @@ def test_jtvae():
     loader = DataLoader(dataset,
                         batch_size=2,
                         collate_fn=collate_fn)
-    for _, batch_data in enumerate(loader):
+    for batch_data in loader:
         assert set(batch_data.keys()) == {'cand_batch_idx', 'cand_graph_batch', 'mol_graph_batch',
                                           'mol_trees', 'stereo_cand_batch_idx',
                                           'stereo_cand_graph_batch', 'stereo_cand_labels',
@@ -241,12 +244,12 @@ def test_jtvae():
     loader = DataLoader(dataset,
                         batch_size=2,
                         collate_fn=collate_fn)
-    for _, batch_data in enumerate(loader):
+    for batch_data in loader:
         assert set(batch_data.keys()) == {'mol_graph_batch', 'mol_trees'}
 
     remove_file('data.txt')
     remove_file(zip_file_path)
-    remove_dir(default_dir + '/jtnn')
+    remove_dir(f'{default_dir}/jtnn')
 
 if __name__ == '__main__':
     test_alchemy()

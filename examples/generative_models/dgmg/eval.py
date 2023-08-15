@@ -15,7 +15,7 @@ from utils import MoleculeDataset, set_random_seed, download_data,\
 
 def generate_and_save(log_dir, num_samples, max_num_steps, model):
     with open(os.path.join(log_dir, 'generated_smiles.txt'), 'w') as f:
-        for i in range(num_samples):
+        for _ in range(num_samples):
             with torch.no_grad():
                 s = model(rdkit_mol=True, max_num_steps=max_num_steps)
             f.write(s + '\n')
@@ -53,7 +53,7 @@ def remove_worker_tmp_dir(args):
         try:
             shutil.rmtree(worker_path)
         except OSError:
-            print('Directory {} does not exist!'.format(worker_path))
+            print(f'Directory {worker_path} does not exist!')
 
 def aggregate_and_evaluate(args):
     print('Merging generated SMILES into a single file...')

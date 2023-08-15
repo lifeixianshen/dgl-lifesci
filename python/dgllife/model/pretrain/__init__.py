@@ -417,7 +417,7 @@ def load_pretrained(model_name, log=True):
     model
     """
     if model_name not in url:
-        raise RuntimeError("Cannot find a pretrained model with name {}".format(model_name))
+        raise RuntimeError(f"Cannot find a pretrained model with name {model_name}")
 
     for func in [create_moleculenet_model, create_generative_model,
                  create_property_model, create_reaction_model]:

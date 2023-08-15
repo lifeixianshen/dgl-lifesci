@@ -35,10 +35,10 @@ def mkdir_p(path):
     """
     try:
         os.makedirs(path)
-        print('Created directory {}'.format(path))
+        print(f'Created directory {path}')
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
-            print('Directory {} already exists.'.format(path))
+            print(f'Directory {path} already exists.')
         else:
             raise
 
@@ -128,11 +128,11 @@ class Optimizer(nn.Module):
         self.optimizer.zero_grad()
 
     def _clip_grad_norm(self):
-        grad_norm = None
-        if self.max_grad_norm is not None:
-            grad_norm = clip_grad_norm_(self.model.parameters(),
-                                        self.max_grad_norm)
-        return grad_norm
+        return (
+            clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+            if self.max_grad_norm is not None
+            else None
+        )
 
     def backward_and_step(self, loss):
         """Backward and update model.
@@ -148,14 +148,13 @@ class Optimizer(nn.Module):
         """
         self.step_count += 1
         loss.backward()
-        if self.step_count % self.num_accum_times == 0:
-            grad_norm = self._clip_grad_norm()
-            self.optimizer.step()
-            self._reset()
-
-            return grad_norm
-        else:
+        if self.step_count % self.num_accum_times != 0:
             return 0
+        grad_norm = self._clip_grad_norm()
+        self.optimizer.step()
+        self._reset()
+
+        return grad_norm
 
     def decay_lr(self, decay_rate):
         """Decay learning rate.
@@ -342,7 +341,7 @@ def get_candidate_bonds(reaction, preds, num_nodes, max_k, easy, include_scores=
     reaction_bonds = defaultdict(bool)
     reactants, _, product = reaction.split('>')
     product_mol = Chem.MolFromSmiles(product)
-    product_atoms = set([atom.GetAtomMapNum() for atom in product_mol.GetAtoms()])
+    product_atoms = {atom.GetAtomMapNum() for atom in product_mol.GetAtoms()}
 
     for reactant in reactants.split('.'):
         reactant_mol = Chem.MolFromSmiles(reactant)
@@ -455,7 +454,7 @@ def reaction_center_final_eval(args, top_ks, model, data_loader, easy):
     """
     model.eval()
     num_correct = {k: 0 for k in top_ks}
-    for batch_id, batch_data in enumerate(data_loader):
+    for batch_data in data_loader:
         batch_reactions, batch_graph_edits, batch_mol_graphs, \
         batch_complete_graphs, batch_atom_pair_labels = batch_data
         with torch.no_grad():
@@ -492,15 +491,15 @@ def output_candidate_bonds_for_a_reaction(info, max_k):
     # setting in the paper.
     candidate_bonds = get_candidate_bonds(reaction, preds, num_nodes, max_k,
                                           easy=True, include_scores=True)
-    candidate_string = ''
-    for candidate in candidate_bonds:
-        # A 4-tuple consisting of the atom mapping number of atom 1,
-        # atom 2, the bond change type and the score
-        candidate_string += '{} {} {:.1f} {:.3f};'.format(
-            candidate[0], candidate[1], candidate[2], candidate[3])
-    candidate_string += '\n'
-
-    return candidate_string
+    return (
+        ''.join(
+            '{} {} {:.1f} {:.3f};'.format(
+                candidate[0], candidate[1], candidate[2], candidate[3]
+            )
+            for candidate in candidate_bonds
+        )
+        + '\n'
+    )
 
 def prepare_reaction_center(args, reaction_center_config):
     """Use a trained model for reaction center prediction to prepare candidate bonds.
@@ -532,25 +531,28 @@ def prepare_reaction_center(args, reaction_center_config):
         reaction_center_model = reaction_center_model.to(args['device'])
     reaction_center_model.eval()
 
-    path_to_candidate_bonds = dict()
+    path_to_candidate_bonds = {}
     for subset in ['train', 'val', 'test']:
-        if '{}_path'.format(subset) not in args:
+        if f'{subset}_path' not in args:
             continue
 
-        path_to_candidate_bonds[subset] = args['result_path'] + \
-                                          '/{}_candidate_bonds.txt'.format(subset)
+        path_to_candidate_bonds[subset] = (
+            args['result_path'] + f'/{subset}_candidate_bonds.txt'
+        )
         if os.path.isfile(path_to_candidate_bonds[subset]):
             continue
 
-        print('Processing subset {}...'.format(subset))
+        print(f'Processing subset {subset}...')
         print('Stage 1/3: Loading dataset...')
-        if args['{}_path'.format(subset)] is None:
+        if args[f'{subset}_path'] is None:
             dataset = USPTOCenter(subset, num_processes=args['num_processes'])
         else:
-            dataset = WLNCenterDataset(raw_file_path=args['{}_path'.format(subset)],
-                                       mol_graph_path='{}.bin'.format(subset),
-                                       num_processes=args['num_processes'],
-                                       reaction_validity_result_prefix=subset)
+            dataset = WLNCenterDataset(
+                raw_file_path=args[f'{subset}_path'],
+                mol_graph_path=f'{subset}.bin',
+                num_processes=args['num_processes'],
+                reaction_validity_result_prefix=subset,
+            )
 
         dataloader = DataLoader(dataset, batch_size=args['reaction_center_batch_size'],
                                 collate_fn=collate_center, shuffle=False)
@@ -697,7 +699,7 @@ def collate_rank_eval(data):
         product_mols_list.append(batch_product_mols[i])
         batch_num_candidate_products.append(len(g_list) - 1)
 
-    if len(batch_product_graphs) == 0:
+    if not batch_product_graphs:
         return None, None, None, None, None, None, None, None
 
     batch_reactant_graphs = dgl.batch(batch_reactant_graphs)
@@ -753,7 +755,7 @@ def bookkeep_reactant(mol):
         Mapping 2-tuples of atoms to bond type. 1, 2, 3, 1.5 are
         separately for single, double, triple and aromatic bond.
     """
-    pair_to_bond_type = dict()
+    pair_to_bond_type = {}
     for bond in mol.GetBonds():
         atom1, atom2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
         atom1, atom2 = min(atom1, atom2), max(atom1, atom2)

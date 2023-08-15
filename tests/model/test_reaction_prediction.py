@@ -118,9 +118,7 @@ def test_reactant_product_graph1():
 def test_reactant_product_graph2():
     batch_size = 2
     edges = (np.array([0, 1, 2]), np.array([1, 2, 2]))
-    reactant_g = []
-    for _ in range(batch_size):
-        reactant_g.append(dgl.graph(edges))
+    reactant_g = [dgl.graph(edges) for _ in range(batch_size)]
     reactant_g = dgl.batch(reactant_g)
     reactant_node_feats = torch.arange(
         reactant_g.num_nodes()).float().reshape(-1, 1)

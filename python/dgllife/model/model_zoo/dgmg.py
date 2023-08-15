@@ -36,8 +36,8 @@ class MoleculeEnv(object):
         self.atom_types = atom_types
         self.bond_types = bond_types
 
-        self.atom_type_to_id = dict()
-        self.bond_type_to_id = dict()
+        self.atom_type_to_id = {}
+        self.bond_type_to_id = {}
 
         for id, a_type in enumerate(atom_types):
             self.atom_type_to_id[a_type] = id
@@ -69,7 +69,7 @@ class MoleculeEnv(object):
               With the formulation of DGMG, j must be created before the decision.
         """
         decisions = []
-        old2new = dict()
+        old2new = {}
 
         for new_id, old_id in enumerate(atom_order):
             atom = mol.GetAtomWithIdx(old_id)
@@ -81,8 +81,12 @@ class MoleculeEnv(object):
                 if v == old_id:
                     u, v = v, u
                 if v in old2new:
-                    decisions.append((1, self.bond_type_to_id[bond.GetBondType()]))
-                    decisions.append((2, old2new[v]))
+                    decisions.extend(
+                        (
+                            (1, self.bond_type_to_id[bond.GetBondType()]),
+                            (2, old2new[v]),
+                        )
+                    )
             decisions.append((1, len(self.bond_types)))
             old2new[old_id] = new_id
         decisions.append((0, len(self.atom_types)))
@@ -161,8 +165,7 @@ class MoleculeEnv(object):
             SMILES
         """
         assert self.mol is not None, 'Expect a Chem.rdchem.Mol object initialized.'
-        s = Chem.MolToSmiles(self.mol)
-        return s
+        return Chem.MolToSmiles(self.mol)
 
 class GraphEmbed(nn.Module):
     """Compute a molecule representations out of atom representations.
@@ -201,11 +204,10 @@ class GraphEmbed(nn.Module):
         if g.num_nodes() == 0:
             # Use a zero tensor for an empty molecule.
             return torch.zeros(1, self.graph_hidden_size)
-        else:
-            # Node features are stored as hv in ndata.
-            hvs = g.ndata['hv']
-            return (self.node_gating(hvs) *
-                    self.node_to_graph(hvs)).sum(0, keepdim=True)
+        # Node features are stored as hv in ndata.
+        hvs = g.ndata['hv']
+        return (self.node_gating(hvs) *
+                self.node_to_graph(hvs)).sum(0, keepdim=True)
 
 class GraphProp(nn.Module):
     """Perform message passing over a molecule graph and update its atom representations.
@@ -297,12 +299,11 @@ class GraphProp(nn.Module):
         """
         if g.num_edges() == 0:
             return
-        else:
-            for t in range(self.num_prop_rounds):
-                g.update_all(message_func=self.dgmg_msg,
-                             reduce_func=self.reduce_funcs[t])
-                g.ndata['hv'] = self.node_update_funcs[t](
-                    g.ndata['a'], g.ndata['hv'])
+        for t in range(self.num_prop_rounds):
+            g.update_all(message_func=self.dgmg_msg,
+                         reduce_func=self.reduce_funcs[t])
+            g.ndata['hv'] = self.node_update_funcs[t](
+                g.ndata['a'], g.ndata['hv'])
 
 class AddNode(nn.Module):
     """Stop or add an atom of a particular type.
@@ -397,7 +398,7 @@ class AddNode(nn.Module):
 
         if action is None:
             action = Categorical(probs).sample().item()
-        stop = bool(action == self.stop)
+        stop = action == self.stop
 
         if not stop:
             self.env.add_atom(action)
@@ -478,7 +479,7 @@ class AddEdge(nn.Module):
 
         if action is None:
             action = Categorical(probs).sample().item()
-        stop = bool(action == self.stop)
+        stop = action == self.stop
 
         if self.compute_log_prob:
             sample_log_prob = F.log_softmax(logits, dim=1)[:, action: action + 1]
@@ -583,8 +584,8 @@ class ChooseDestAndUpdate(nn.Module):
             # Perform message passing when new bonds are added.
             self.graph_op['prop'](g)
 
-        if self.compute_log_prob:
-            if dests_probs.nelement() > 1:
+        if dests_probs.nelement() > 1:
+            if self.compute_log_prob:
                 self.log_prob.append(
                     F.log_softmax(dests_scores, dim=1)[:, dest: dest + 1])
 

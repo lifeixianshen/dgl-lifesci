@@ -44,10 +44,10 @@ def mkdir_p(path, log=True):
     try:
         os.makedirs(path)
         if log:
-            print('Created directory {}'.format(path))
+            print(f'Created directory {path}')
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path) and log:
-            print('Directory {} already exists.'.format(path))
+            print(f'Directory {path} already exists.')
         else:
             raise
 
@@ -59,10 +59,9 @@ def get_date_postfix():
     post_fix : str
     """
     dt = datetime.datetime.now()
-    post_fix = '{}_{:02d}-{:02d}-{:02d}'.format(
-        dt.date(), dt.hour, dt.minute, dt.second)
-
-    return post_fix
+    return '{}_{:02d}-{:02d}-{:02d}'.format(
+        dt.date(), dt.hour, dt.minute, dt.second
+    )
 
 def setup_log_dir(args):
     """Name and create directory for logging.
@@ -79,8 +78,8 @@ def setup_log_dir(args):
     """
     date_postfix = get_date_postfix()
     log_dir = os.path.join(
-        args['log_dir'],
-        '{}_{}_{}'.format(args['dataset'], args['order'], date_postfix))
+        args['log_dir'], f"{args['dataset']}_{args['order']}_{date_postfix}"
+    )
     mkdir_p(log_dir)
     return log_dir
 
@@ -155,9 +154,9 @@ def setup_dataset(args):
         Configuration
     """
     if args['dataset'] in ['ChEMBL', 'ZINC']:
-        print('Built-in support for dataset {} exists.'.format(args['dataset']))
+        print(f"Built-in support for dataset {args['dataset']} exists.")
     else:
-        print('Configure for new dataset {}...'.format(args['dataset']))
+        print(f"Configure for new dataset {args['dataset']}...")
         configure_new_dataset(args['dataset'], args['train_file'], args['val_file'])
 
 def setup(args, train=True):
@@ -369,7 +368,7 @@ def neutralize_charges(mol, reactions=None):
     """
     if reactions is None:
         reactions = initialize_neuralization_reactions()
-    for i, (reactant, product) in enumerate(reactions):
+    for reactant, product in reactions:
         while mol.HasSubstructMatch(reactant):
             rms = AllChem.ReplaceSubstructs(mol, reactant, product)
             mol = rms[0]
@@ -595,8 +594,7 @@ def preprocess_dataset(atom_types, bond_types, smiles, max_num_atoms=23):
 
         valid_smiles.append(standard_s)
 
-    valid_smiles = list(set(valid_smiles))
-    return valid_smiles
+    return list(set(valid_smiles))
 
 def download_data(dataset, fname):
     """Download dataset if built-in support exists
@@ -613,7 +611,7 @@ def download_data(dataset, fname):
         return
 
     data_path = fname
-    download(_get_dgl_url(os.path.join('dataset', fname)), path=data_path)
+    download(_get_dgl_url(os.path.join('dataset', data_path)), path=data_path)
 
 def load_smiles_from_file(f_name):
     """Load dataset into a list of SMILES
@@ -852,10 +850,10 @@ class Subset(Dataset):
             return
 
         self.decisions = []
-        for m in self.mols:
-            self.decisions.append(
-                self.env.get_decision_sequence(m, list(range(m.GetNumAtoms())))
-            )
+        self.decisions.extend(
+            self.env.get_decision_sequence(m, list(range(m.GetNumAtoms())))
+            for m in self.mols
+        )
 
     def __len__(self):
         """Get number of molecules in the dataset."""
@@ -865,11 +863,10 @@ class Subset(Dataset):
         """Get the decision sequence for generating the molecule indexed by item."""
         if self.order == 'canonical':
             return self.decisions[item]
-        else:
-            m = self.mols[item]
-            nodes = list(range(m.GetNumAtoms()))
-            random.shuffle(nodes)
-            return self.env.get_decision_sequence(m, nodes)
+        m = self.mols[item]
+        nodes = list(range(m.GetNumAtoms()))
+        random.shuffle(nodes)
+        return self.env.get_decision_sequence(m, nodes)
 
 ########################################################################################################################
 #                                                  progress tracking                                                   #
@@ -906,10 +903,7 @@ class Printer(object):
     def _get_current_batch(self):
         """Get current batch index."""
         remainer = self.batch_count % self.num_batches
-        if (remainer == 0):
-            return self.num_batches
-        else:
-            return remainer
+        return self.num_batches if (remainer == 0) else remainer
 
     def update(self, epoch, loss, prob):
         """Update learning progress.
@@ -961,21 +955,15 @@ def summarize_a_molecule(smile, checklist=None):
             'NumBonds': lambda mol: mol.GetNumBonds()
         }
 
-    summary = dict()
+    summary = {}
     mol = Chem.MolFromSmiles(smile)
     if mol is None:
-        summary.update({
-            'smile': smile,
-            'valid': False
-        })
+        summary |= {'smile': smile, 'valid': False}
         for k in checklist.keys():
             summary[k] = None
     else:
         mol = standardize_mol(mol)
-        summary.update({
-            'smile': Chem.MolToSmiles(mol),
-            'valid': True
-        })
+        summary |= {'smile': Chem.MolToSmiles(mol), 'valid': True}
         Chem.SanitizeMol(mol)
         for k, f in checklist.items():
             summary[k] = f(mol)

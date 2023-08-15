@@ -74,9 +74,7 @@ class ACNNPredictor(nn.Module):
         for i, h in enumerate(hidden_sizes):
             linear_layer = nn.Linear(in_size, h)
             truncated_normal_(linear_layer.weight, std=weight_init_stddevs[i])
-            modules.append(linear_layer)
-            modules.append(nn.ReLU())
-            modules.append(nn.Dropout(dropouts[i]))
+            modules.extend((linear_layer, nn.ReLU(), nn.Dropout(dropouts[i])))
             in_size = h
         linear_layer = nn.Linear(in_size, num_tasks)
         truncated_normal_(linear_layer.weight, std=weight_init_stddevs[-1])
@@ -189,7 +187,7 @@ class ACNN(nn.Module):
         if radial is None:
             radial = [[12.0], [0.0, 2.0, 4.0, 6.0, 8.0], [4.0]]
         # Take the product of sets of options and get a list of 3-tuples.
-        radial_params = [x for x in itertools.product(*radial)]
+        radial_params = list(itertools.product(*radial))
         radial_params = torch.stack(list(map(torch.tensor, zip(*radial_params))), dim=1)
 
         interaction_cutoffs = radial_params[:, 0]

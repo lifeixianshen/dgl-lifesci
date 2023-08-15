@@ -87,10 +87,11 @@ def decode_stereo(smiles_2d):
     smiles_3d = [Chem.MolToSmiles(mol, isomericSmiles=True)
                 for mol in dec_isomers]
 
-    chiral_n = [atom.GetIdx() for atom in dec_isomers[0].GetAtoms()
-                if int(atom.GetChiralTag()) > 0 and atom.GetSymbol() == "N"]
-
-    if len(chiral_n) > 0:
+    if chiral_n := [
+        atom.GetIdx()
+        for atom in dec_isomers[0].GetAtoms()
+        if int(atom.GetChiralTag()) > 0 and atom.GetSymbol() == "N"
+    ]:
         for mol in dec_isomers:
             for idx in chiral_n:
                 mol.GetAtomWithIdx(idx).SetChiralTag(
@@ -300,12 +301,9 @@ def tree_decomp(mol, mst_max_weight=100):
                 for j in range(i + 1, len(cnei)):
                     c1, c2 = cnei[i], cnei[j]
                     inter = set(cliques[c1]) & set(cliques[c2])
-                    if edges[(c1, c2)] < len(inter):
-                        # cnei[i] < cnei[j] by construction
-                        edges[(c1, c2)] = len(inter)
-
+                    edges[(c1, c2)] = max(edges[(c1, c2)], len(inter))
     edges = [u + (mst_max_weight-v,) for u, v in edges.items()]
-    if len(edges) == 0:
+    if not edges:
         return cliques, edges
 
     # Compute Maximum Spanning Tree
@@ -461,7 +459,7 @@ def enum_attach_nx(ctr_mol, nei_node, amap, singletons):
                   _ in amap if nei_id in singletons]
     ctr_atoms = [atom for atom in ctr_mol.GetAtoms() if atom.GetIdx()
                  not in black_list]
-    ctr_bonds = [bond for bond in ctr_mol.GetBonds()]
+    ctr_bonds = list(ctr_mol.GetBonds())
 
     if nei_mol.GetNumBonds() == 0:  # neighbor singleton
         nei_atom = nei_mol.GetAtomWithIdx(0)
@@ -577,7 +575,7 @@ def enum_assemble_nx(node, neighbors, prev_nodes=None, prev_amap=None):
             cand_smiles.add(smiles)
             candidates.append(amap)
 
-        if len(candidates) == 0:
+        if not candidates:
             return []
 
         for new_amap in candidates:
@@ -795,22 +793,62 @@ def get_atom_featurizer_enc():
     BaseAtomFeaturizer
         The atom featurizer for encoding.
     """
-    featurizer = BaseAtomFeaturizer({'x': ConcatFeaturizer([
-        partial(atom_type_one_hot,
-                allowable_set=['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na',
-                               'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn'],
-                encode_unknown=True),
-        partial(atom_degree_one_hot, allowable_set=[0, 1, 2, 3, 4], encode_unknown=True),
-        partial(atom_formal_charge_one_hot, allowable_set=[-1, -2, 1, 2],
-                encode_unknown=True),
-        partial(atom_chiral_tag_one_hot,
-                allowable_set=[Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
-                               Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
-                               Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW],
-                encode_unknown=True),
-        atom_is_aromatic
-    ])})
-    return featurizer
+    return BaseAtomFeaturizer(
+        {
+            'x': ConcatFeaturizer(
+                [
+                    partial(
+                        atom_type_one_hot,
+                        allowable_set=[
+                            'C',
+                            'N',
+                            'O',
+                            'S',
+                            'F',
+                            'Si',
+                            'P',
+                            'Cl',
+                            'Br',
+                            'Mg',
+                            'Na',
+                            'Ca',
+                            'Fe',
+                            'Al',
+                            'I',
+                            'B',
+                            'K',
+                            'Se',
+                            'Zn',
+                            'H',
+                            'Cu',
+                            'Mn',
+                        ],
+                        encode_unknown=True,
+                    ),
+                    partial(
+                        atom_degree_one_hot,
+                        allowable_set=[0, 1, 2, 3, 4],
+                        encode_unknown=True,
+                    ),
+                    partial(
+                        atom_formal_charge_one_hot,
+                        allowable_set=[-1, -2, 1, 2],
+                        encode_unknown=True,
+                    ),
+                    partial(
+                        atom_chiral_tag_one_hot,
+                        allowable_set=[
+                            Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
+                            Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
+                            Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,
+                        ],
+                        encode_unknown=True,
+                    ),
+                    atom_is_aromatic,
+                ]
+            )
+        }
+    )
 
 def get_bond_featurizer_enc():
     """Get the bond featurizer for encoding.
@@ -820,18 +858,27 @@ def get_bond_featurizer_enc():
     BaseBondFeaturizer
         The bond featurizer for encoding.
     """
-    featurizer = BaseBondFeaturizer({'x': ConcatFeaturizer([
-        bond_type_one_hot,
-        bond_is_in_ring,
-        partial(bond_stereo_one_hot,
-                allowable_set=[Chem.rdchem.BondStereo.STEREONONE,
-                               Chem.rdchem.BondStereo.STEREOANY,
-                               Chem.rdchem.BondStereo.STEREOZ,
-                               Chem.rdchem.BondStereo.STEREOE,
-                               Chem.rdchem.BondStereo.STEREOCIS],
-                encode_unknown=True)
-    ])})
-    return featurizer
+    return BaseBondFeaturizer(
+        {
+            'x': ConcatFeaturizer(
+                [
+                    bond_type_one_hot,
+                    bond_is_in_ring,
+                    partial(
+                        bond_stereo_one_hot,
+                        allowable_set=[
+                            Chem.rdchem.BondStereo.STEREONONE,
+                            Chem.rdchem.BondStereo.STEREOANY,
+                            Chem.rdchem.BondStereo.STEREOZ,
+                            Chem.rdchem.BondStereo.STEREOE,
+                            Chem.rdchem.BondStereo.STEREOCIS,
+                        ],
+                        encode_unknown=True,
+                    ),
+                ]
+            )
+        }
+    )
 
 def get_atom_featurizer_dec():
     """Get the atom featurizer for decoding.
@@ -841,17 +888,53 @@ def get_atom_featurizer_dec():
     BaseAtomFeaturizer
         The atom featurizer for decoding.
     """
-    featurizer = BaseAtomFeaturizer({'x': ConcatFeaturizer([
-        partial(atom_type_one_hot,
-                allowable_set=['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na',
-                               'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn'],
-                encode_unknown=True),
-        partial(atom_degree_one_hot, allowable_set=[0, 1, 2, 3, 4], encode_unknown=True),
-        partial(atom_formal_charge_one_hot, allowable_set=[-1, -2, 1, 2],
-                encode_unknown=True),
-        atom_is_aromatic
-    ])})
-    return featurizer
+    return BaseAtomFeaturizer(
+        {
+            'x': ConcatFeaturizer(
+                [
+                    partial(
+                        atom_type_one_hot,
+                        allowable_set=[
+                            'C',
+                            'N',
+                            'O',
+                            'S',
+                            'F',
+                            'Si',
+                            'P',
+                            'Cl',
+                            'Br',
+                            'Mg',
+                            'Na',
+                            'Ca',
+                            'Fe',
+                            'Al',
+                            'I',
+                            'B',
+                            'K',
+                            'Se',
+                            'Zn',
+                            'H',
+                            'Cu',
+                            'Mn',
+                        ],
+                        encode_unknown=True,
+                    ),
+                    partial(
+                        atom_degree_one_hot,
+                        allowable_set=[0, 1, 2, 3, 4],
+                        encode_unknown=True,
+                    ),
+                    partial(
+                        atom_formal_charge_one_hot,
+                        allowable_set=[-1, -2, 1, 2],
+                        encode_unknown=True,
+                    ),
+                    atom_is_aromatic,
+                ]
+            )
+        }
+    )
 
 def get_bond_featurizer_dec():
     """Get the bond featurizer for decoding.
@@ -861,10 +944,9 @@ def get_bond_featurizer_dec():
     BaseBondFeaturizer
         The bond featurizer for decoding.
     """
-    featurizer = BaseBondFeaturizer({'x': ConcatFeaturizer([
-        bond_type_one_hot, bond_is_in_ring
-    ])})
-    return featurizer
+    return BaseBondFeaturizer(
+        {'x': ConcatFeaturizer([bond_type_one_hot, bond_is_in_ring])}
+    )
 
 def mol2dgl_enc(smiles, atom_featurizer, bond_featurizer):
     """Convert a SMILES to a DGLGraph for encoding.
@@ -934,12 +1016,8 @@ def mol2dgl_dec(cand_batch, atom_featurizer, bond_featurizer):
                            canonical_atom_order=False)
         cand_graphs.append(g)
 
-        if isinstance(mol_tree, DGLMolTree):
-            tree_graph = mol_tree.g
-        else:
-            tree_graph = mol_tree
-
-        for i, bond in enumerate(mol.GetBonds()):
+        tree_graph = mol_tree.g if isinstance(mol_tree, DGLMolTree) else mol_tree
+        for bond in mol.GetBonds():
             a1, a2 = bond.GetBeginAtom(), bond.GetEndAtom()
             begin_idx, end_idx = a1.GetIdx(), a2.GetIdx()
             x_nid, y_nid = a1.GetAtomMapNum(), a2.GetAtomMapNum()
@@ -988,17 +1066,12 @@ class JTVAEDataset(Dataset):
         dir = get_download_dir()
 
         _url = _get_dgl_url('dataset/jtnn.zip')
-        zip_file_path = '{}/jtnn.zip'.format(dir)
+        zip_file_path = f'{dir}/jtnn.zip'
         download(_url, path=zip_file_path)
-        extract_archive(zip_file_path, '{}/jtnn'.format(dir))
+        extract_archive(zip_file_path, f'{dir}/jtnn')
 
         print('Loading data...')
-        if data in ['train', 'test']:
-            # ZINC subset
-            data_file = '{}/jtnn/{}.txt'.format(dir, data)
-        else:
-            # New dataset
-            data_file = data
+        data_file = f'{dir}/jtnn/{data}.txt' if data in ['train', 'test'] else data
         with open(data_file) as f:
             self.data = [line.strip("\r\n ").split()[0] for line in f]
         self.vocab = vocab
@@ -1127,7 +1200,7 @@ class JTVAEDataset(Dataset):
                 continue
             cands.extend([(cand, mol_tree, node_id)
                          for cand in node['cand_mols']])
-        if len(cands) > 0:
+        if cands:
             cand_graphs, tree_mess_src_e, tree_mess_tgt_e, tree_mess_tgt_n = mol2dgl_dec(
                 cands, self.atom_featurizer_dec, self.bond_featurizer_dec)
         else:
@@ -1150,14 +1223,14 @@ class JTVAEDataset(Dataset):
             stereo_cand_graphs = []
             stereo_cand_label = []
 
-        result.update({
+        result |= {
             'cand_graphs': cand_graphs,
             'tree_mess_src_e': tree_mess_src_e,
             'tree_mess_tgt_e': tree_mess_tgt_e,
             'tree_mess_tgt_n': tree_mess_tgt_n,
             'stereo_cand_graphs': stereo_cand_graphs,
             'stereo_cand_label': stereo_cand_label,
-            })
+        }
 
         return result
 
@@ -1276,7 +1349,7 @@ class JTVAECollator(object):
         for i in range(len(stereo_cand_graphs)):
             stereo_cand_batch_idx.extend([i] * len(stereo_cand_graphs[i]))
 
-        if len(stereo_cand_batch_idx) > 0:
+        if stereo_cand_batch_idx:
             stereo_cand_labels = [
                 (label, length)
                 for ex in _unpack_field(examples, 'stereo_cand_label')
@@ -1290,7 +1363,7 @@ class JTVAECollator(object):
             stereo_cand_graph_batch = None
             stereo_cand_batch_idx = []
 
-        result.update({
+        result |= {
             'cand_graph_batch': cand_graph_batch,
             'cand_batch_idx': cand_batch_idx,
             'tree_mess_tgt_e': tree_mess_tgt_e,
@@ -1300,6 +1373,6 @@ class JTVAECollator(object):
             'stereo_cand_batch_idx': stereo_cand_batch_idx,
             'stereo_cand_labels': stereo_cand_labels,
             'stereo_cand_lengths': stereo_cand_lengths,
-            })
+        }
 
         return result

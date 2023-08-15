@@ -14,17 +14,13 @@ from joblib import cpu_count
 
 def test_data_frame1():
     data = [['CCO', 0, 1], ['CO', 2, 3]]
-    df = pd.DataFrame(data, columns = ['smiles', 'task1', 'task2'])
-
-    return df
+    return pd.DataFrame(data, columns = ['smiles', 'task1', 'task2'])
 
 def test_data_frame2():
     data = []
     for _ in range(500):
         data.extend([['CCO', 0, 1], ['CO', 2, 3]])
-    df = pd.DataFrame(data, columns = ['smiles', 'task1', 'task2'])
-
-    return df
+    return pd.DataFrame(data, columns = ['smiles', 'task1', 'task2'])
 
 def remove_file(fname):
     if os.path.isfile(fname):

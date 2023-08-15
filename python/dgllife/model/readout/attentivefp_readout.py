@@ -134,7 +134,4 @@ class AttentiveFPReadout(nn.Module):
             else:
                 g_feats = readout(g, node_feats, g_feats)
 
-        if get_node_weight:
-            return g_feats, node_weights
-        else:
-            return g_feats
+        return (g_feats, node_weights) if get_node_weight else g_feats

@@ -28,10 +28,10 @@ def mkdir_p(path, log=True):
     try:
         os.makedirs(path)
         if log:
-            print('Created directory {}'.format(path))
+            print(f'Created directory {path}')
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path) and log:
-            print('Directory {} already exists.'.format(path))
+            print(f'Directory {path} already exists.')
         else:
             raise
 

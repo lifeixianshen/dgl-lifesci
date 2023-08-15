@@ -43,7 +43,7 @@ def run_an_eval_epoch(args, model, data_loader):
     model.eval()
     eval_meter = Meter()
     with torch.no_grad():
-        for batch_id, batch_data in enumerate(data_loader):
+        for batch_data in data_loader:
             smiles, bg, labels, masks = batch_data
             labels = labels.to(args['device'])
             prediction = predict(args, model, bg)
@@ -70,11 +70,13 @@ def main(args, exp_config, train_set, val_set, test_set):
     if args['pretrain']:
         args['num_epochs'] = 0
         if args['featurizer_type'] == 'pre_train':
-            model = load_pretrained('{}_{}'.format(
-                args['model'], args['dataset'])).to(args['device'])
+            model = load_pretrained(f"{args['model']}_{args['dataset']}").to(
+                args['device']
+            )
         else:
-            model = load_pretrained('{}_{}_{}'.format(
-                args['model'], args['featurizer_type'], args['dataset'])).to(args['device'])
+            model = load_pretrained(
+                f"{args['model']}_{args['featurizer_type']}_{args['dataset']}"
+            ).to(args['device'])
     else:
         model = load_model(exp_config).to(args['device'])
         loss_criterion = nn.SmoothL1Loss(reduction='none')
@@ -107,9 +109,9 @@ def main(args, exp_config, train_set, val_set, test_set):
 
     with open(args['result_path'] + '/eval.txt', 'w') as f:
         if not args['pretrain']:
-            f.write('Best val {}: {}\n'.format(args['metric'], stopper.best_score))
-        f.write('Val {}: {}\n'.format(args['metric'], val_score))
-        f.write('Test {}: {}\n'.format(args['metric'], test_score))
+            f.write(f"Best val {args['metric']}: {stopper.best_score}\n")
+        f.write(f"Val {args['metric']}: {val_score}\n")
+        f.write(f"Test {args['metric']}: {test_score}\n")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -176,7 +178,7 @@ if __name__ == '__main__':
                        edge_featurizer=args['edge_featurizer'],
                        n_jobs=1 if args['num_workers'] == 0 else args['num_workers'])
     else:
-        raise ValueError('Unexpected dataset: {}'.format(args['dataset']))
+        raise ValueError(f"Unexpected dataset: {args['dataset']}")
 
     args['n_tasks'] = dataset.n_tasks
     train_set, val_set, test_set = split_dataset(args, dataset)

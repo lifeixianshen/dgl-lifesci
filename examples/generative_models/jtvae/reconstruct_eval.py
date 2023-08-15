@@ -29,8 +29,11 @@ def main(args):
         model.load_state_dict(torch.load(args.model_path))
     else:
         model = load_pretrained("JTNN_ZINC")
-    print("# model parameters: {:d}K".format(
-        sum([x.nelement() for x in model.parameters()]) // 1000))
+    print(
+        "# model parameters: {:d}K".format(
+            sum(x.nelement() for x in model.parameters()) // 1000
+        )
+    )
 
     dataset = JTVAEDataset(data=args.data, vocab=model.vocab, training=False)
     dataloader = DataLoader(
@@ -70,14 +73,14 @@ def main(args):
                 acc += 1
             tot += 1
         except Exception as e:
-            print("Failed to encode: {}".format(gt_smiles))
+            print(f"Failed to encode: {gt_smiles}")
             print(e)
 
         if it % 20 == 1:
             print("Progress {}/{}; Current Reconstruction Accuracy: {:.4f}".format(
                 it, len(dataloader), acc / tot))
 
-    print("Reconstruction Accuracy: {}".format(acc / tot))
+    print(f"Reconstruction Accuracy: {acc / tot}")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

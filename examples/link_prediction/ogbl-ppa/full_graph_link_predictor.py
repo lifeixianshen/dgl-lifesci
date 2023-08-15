@@ -217,11 +217,11 @@ def main():
                               f'Valid: {100 * valid_hits:.2f}%, '
                               f'Test: {100 * test_hits:.2f}%')
 
-        for key in loggers.keys():
+        for key in loggers:
             print(key)
             loggers[key].print_statistics(run)
 
-    for key in loggers.keys():
+    for key in loggers:
         print(key)
         loggers[key].print_statistics()
 
