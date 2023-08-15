@@ -180,14 +180,14 @@ def test_moleculenet():
                 g2 = smiles_to_bigraph('CCO', node_featurizer=node_featurizer)
                 bg = dgl.batch([g1, g2])
 
-                model = load_pretrained('{}_{}_{}'.format(
-                    model_type, featurizer_type, dataset)).to(device)
+                model = load_pretrained(f'{model_type}_{featurizer_type}_{dataset}').to(device)
                 with torch.no_grad():
                     model(bg.to(device), bg.ndata.pop('hv').to(device))
                     model.eval()
                     model(g1.to(device), g1.ndata.pop('hv').to(device))
-                remove_file('{}_{}_{}_pre_trained.pth'.format(
-                    model_type.lower(), featurizer_type, dataset))
+                remove_file(
+                    f'{model_type.lower()}_{featurizer_type}_{dataset}_pre_trained.pth'
+                )
 
             for model_type in ['Weave', 'MPNN', 'AttentiveFP']:
                 g1 = smiles_to_bigraph('CO', add_self_loop=True, node_featurizer=node_featurizer,
@@ -196,14 +196,14 @@ def test_moleculenet():
                                        edge_featurizer=edge_featurizer)
                 bg = dgl.batch([g1, g2])
 
-                model = load_pretrained('{}_{}_{}'.format(
-                    model_type, featurizer_type, dataset)).to(device)
+                model = load_pretrained(f'{model_type}_{featurizer_type}_{dataset}').to(device)
                 with torch.no_grad():
                     model(bg.to(device), bg.ndata.pop('hv').to(device), bg.edata.pop('he').to(device))
                     model.eval()
                     model(g1.to(device), g1.ndata.pop('hv').to(device), g1.edata.pop('he').to(device))
-                remove_file('{}_{}_{}_pre_trained.pth'.format(
-                    model_type.lower(), featurizer_type, dataset))
+                remove_file(
+                    f'{model_type.lower()}_{featurizer_type}_{dataset}_pre_trained.pth'
+                )
 
         if dataset == 'ClinTox':
             continue
@@ -218,7 +218,7 @@ def test_moleculenet():
                                    edge_featurizer=edge_featurizer)
             bg = dgl.batch([g1, g2])
 
-            model = load_pretrained('{}_{}'.format(model_type, dataset)).to(device)
+            model = load_pretrained(f'{model_type}_{dataset}').to(device)
             with torch.no_grad():
                 node_feats = [
                     bg.ndata.pop('atomic_number').to(device),
@@ -239,7 +239,7 @@ def test_moleculenet():
                     g1.edata.pop('bond_direction_type').to(device)
                 ]
                 model(g1.to(device), node_feats, edge_feats)
-            remove_file('{}_{}_pre_trained.pth'.format(model_type.lower(), dataset))
+            remove_file(f'{model_type.lower()}_{dataset}_pre_trained.pth')
 
 if __name__ == '__main__':
     # test_dgmg()

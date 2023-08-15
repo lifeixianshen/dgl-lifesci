@@ -485,9 +485,10 @@ class ScaffoldSplitter(object):
             Each element of the list is a list of int,
             representing the indices of compounds with a same scaffold.
         """
-        assert scaffold_func in ['decompose', 'smiles'], \
-            "Expect scaffold_func to be 'decompose' or 'smiles', " \
-            "got '{}'".format(scaffold_func)
+        assert scaffold_func in [
+            'decompose',
+            'smiles',
+        ], f"Expect scaffold_func to be 'decompose' or 'smiles', got '{scaffold_func}'"
 
         if log_every_n is not None:
             print('Start computing Bemis-Murcko scaffolds.')
@@ -512,12 +513,12 @@ class ScaffoldSplitter(object):
         # Order groups of molecules by first comparing the size of groups
         # and then the index of the first compound in the group.
         scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
-        scaffold_sets = [
-            scaffold_set for (scaffold, scaffold_set) in sorted(
-                scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
+        return [
+            scaffold_set
+            for (scaffold, scaffold_set) in sorted(
+                scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True
+            )
         ]
-
-        return scaffold_sets
 
     @staticmethod
     def train_val_test_split(dataset, mols=None, sanitize=True,

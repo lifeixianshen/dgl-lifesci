@@ -107,9 +107,7 @@ class DGLJTMPN(nn.Module):
             cand_graphs, cand_line_graph, tree_mess_src_edges, tree_mess_tgt_edges,
             tree_mess_tgt_nodes, mol_tree_batch)
 
-        g_repr = mean_nodes(cand_graphs, 'h')
-
-        return g_repr
+        return mean_nodes(cand_graphs, 'h')
 
     def run(self, cand_graphs, cand_line_graph, tree_mess_src_edges, tree_mess_tgt_edges,
             tree_mess_tgt_nodes, mol_tree_batch):
@@ -136,7 +134,7 @@ class DGLJTMPN(nn.Module):
         })
 
         cand_graphs.edata['alpha'] = \
-            torch.zeros(cand_graphs.num_edges(), self.hidden_size).to(device)
+                torch.zeros(cand_graphs.num_edges(), self.hidden_size).to(device)
         cand_graphs.ndata['alpha'] = zero_node_state
         if tree_mess_src_edges.shape[0] > 0:
             if PAPER:
@@ -156,7 +154,7 @@ class DGLJTMPN(nn.Module):
                     func=lambda edges: {'alpha': edges.src['alpha']},
                 )
 
-        for i in range(self.depth - 1):
+        for _ in range(self.depth - 1):
             cand_line_graph.update_all(
                 mpn_loopy_bp_msg,
                 mpn_loopy_bp_reduce,

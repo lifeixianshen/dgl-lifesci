@@ -45,10 +45,10 @@ class DGLJTNNVAE(nn.Module):
 
         if vocab_file is None:
             default_dir = get_download_dir()
-            vocab_file = '{}/jtvae/{}.txt'.format(default_dir, 'vocab')
-            zip_file_path = '{}/jtvae.zip'.format(default_dir)
+            vocab_file = f'{default_dir}/jtvae/vocab.txt'
+            zip_file_path = f'{default_dir}/jtvae.zip'
             download(_get_dgl_url('dataset/jtvae.zip'), path=zip_file_path)
-            extract_archive(zip_file_path, '{}/jtvae'.format(default_dir))
+            extract_archive(zip_file_path, f'{default_dir}/jtvae')
 
         with open(vocab_file, 'r') as f:
             self.vocab = Vocab([x.strip("\r\n ") for x in f])
@@ -152,7 +152,7 @@ class DGLJTNNVAE(nn.Module):
 
         cnt, tot, acc = 0, 0, 0
         all_loss = []
-        for i, mol_tree in enumerate(mol_batch['mol_trees']):
+        for mol_tree in mol_batch['mol_trees']:
             comp_nodes = [node_id for node_id, node in mol_tree.nodes_dict.items()
                           if len(node['cands']) > 1 and not node['is_leaf']]
             cnt += len(comp_nodes)

@@ -152,7 +152,8 @@ class Meter(object):
             return np.sum(scores)
         else:
             raise ValueError(
-                "Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction))
+                f"Expect reduction to be 'none', 'mean' or 'sum', got {reduction}"
+            )
 
     def multilabel_score(self, score_func, reduction='none'):
         """Evaluate for multi-label prediction.
@@ -341,5 +342,6 @@ class Meter(object):
         elif metric_name == 'pr_auc_score':
             return self.pr_auc_score(reduction)
         else:
-            raise ValueError('Expect metric_name to be "r2" or "mae" or "rmse" '
-                             'or "roc_auc_score" or "pr_auc", got {}'.format(metric_name))
+            raise ValueError(
+                f'Expect metric_name to be "r2" or "mae" or "rmse" or "roc_auc_score" or "pr_auc", got {metric_name}'
+            )

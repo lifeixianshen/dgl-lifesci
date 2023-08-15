@@ -58,9 +58,9 @@ class GraphSAGE(nn.Module):
         if aggregator_type is None:
             aggregator_type = ['mean' for _ in range(n_layers)]
         lengths = [len(hidden_feats), len(activation), len(dropout), len(aggregator_type)]
-        assert len(set(lengths)) == 1, 'Expect the lengths of hidden_feats, activation, ' \
-                                       'dropout and aggregator_type to be the same, ' \
-                                       'got {}'.format(lengths)
+        assert (
+            len(set(lengths)) == 1
+        ), f'Expect the lengths of hidden_feats, activation, dropout and aggregator_type to be the same, got {lengths}'
 
         self.hidden_feats = hidden_feats
         self.gnn_layers = nn.ModuleList()

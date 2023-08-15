@@ -126,15 +126,12 @@ def ACNN_graph_construction_and_featurization(ligand_mol,
     else:
         num_protein_atoms = max_num_protein_atoms
 
-    data_dict = dict()
-    num_nodes_dict = dict()
-
+    data_dict = {}
     # graph data for atoms in the ligand
     ligand_srcs, ligand_dsts, ligand_dists = k_nearest_neighbors(
         ligand_coordinates, neighbor_cutoff, max_num_neighbors)
     data_dict[('ligand_atom', 'ligand', 'ligand_atom')] = (ligand_srcs, ligand_dsts)
-    num_nodes_dict['ligand_atom'] = num_ligand_atoms
-
+    num_nodes_dict = {'ligand_atom': num_ligand_atoms}
     # graph data for atoms in the protein
     protein_srcs, protein_dsts, protein_dists = k_nearest_neighbors(
         protein_coordinates, neighbor_cutoff, max_num_neighbors)

@@ -95,8 +95,8 @@ class PDBBind(object):
             index_label_file = extracted_data_path + '/v2015/INDEX_refined_data.2015'
         else:
             raise ValueError(
-                'Expect the subset_choice to be either '
-                'core or refined, got {}'.format(subset))
+                f'Expect the subset_choice to be either core or refined, got {subset}'
+            )
 
         self._preprocess(extracted_data_path, index_label_file, load_binding_pocket,
                          sanitize, calc_charges, remove_hs, use_conformation,
@@ -186,7 +186,7 @@ class PDBBind(object):
         """
         contents = []
         with open(index_label_file, 'r') as f:
-            for line in f.readlines():
+            for line in f:
                 if line[0] != "#":
                     splitted_elements = line.split()
                     if len(splitted_elements) == 8:
@@ -200,14 +200,20 @@ class PDBBind(object):
             '-logKd/Ki', 'Kd/Ki', 'reference', 'ligand_name'))
         pdbs = self.df['PDB_code'].tolist()
 
-        self.ligand_files = [os.path.join(
-            root_path, 'v2015', pdb, '{}_ligand.sdf'.format(pdb)) for pdb in pdbs]
+        self.ligand_files = [
+            os.path.join(root_path, 'v2015', pdb, f'{pdb}_ligand.sdf')
+            for pdb in pdbs
+        ]
         if load_binding_pocket:
-            self.protein_files = [os.path.join(
-                root_path, 'v2015', pdb, '{}_pocket.pdb'.format(pdb)) for pdb in pdbs]
+            self.protein_files = [
+                os.path.join(root_path, 'v2015', pdb, f'{pdb}_pocket.pdb')
+                for pdb in pdbs
+            ]
         else:
-            self.protein_files = [os.path.join(
-                root_path, 'v2015', pdb, '{}_protein.pdb'.format(pdb)) for pdb in pdbs]
+            self.protein_files = [
+                os.path.join(root_path, 'v2015', pdb, f'{pdb}_protein.pdb')
+                for pdb in pdbs
+            ]
 
         num_processes = min(num_processes, len(pdbs))
 

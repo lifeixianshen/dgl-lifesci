@@ -106,7 +106,7 @@ def default_atom_pair_featurizer(reactants):
         features for each pair of atoms.
     """
     # Decide the reactant membership for each atom
-    atom_to_reactant = dict()
+    atom_to_reactant = {}
     reactant_list = reactants.split('.')
     for id, s in enumerate(reactant_list):
         mol = Chem.MolFromSmiles(s)
@@ -115,7 +115,7 @@ def default_atom_pair_featurizer(reactants):
 
     # Construct mapping from atom pair to RDKit bond object
     all_reactant_mol = Chem.MolFromSmiles(reactants)
-    atom_pair_to_bond = dict()
+    atom_pair_to_bond = {}
     for bond in all_reactant_mol.GetBonds():
         atom1 = bond.GetBeginAtom().GetIntProp('molAtomMapNumber') - 1
         atom2 = bond.GetEndAtom().GetIntProp('molAtomMapNumber') - 1
@@ -176,7 +176,7 @@ def get_pair_label(reactants_mol, graph_edits):
 
     num_atoms = reactants_mol.GetNumAtoms()
     labels = torch.zeros((num_atoms, num_atoms, 5))
-    for pair in pair_to_changes.keys():
+    for pair in pair_to_changes:
         i, j = pair
         labels[i, j, pair_to_changes[(j, i)]] = 1.
 
@@ -216,26 +216,25 @@ def get_bond_changes(reaction):
              bond.GetEndAtom().GetProp('molAtomMapNumber')])
         if (nums[0] not in conserved_maps) and (nums[1] not in conserved_maps):
             continue
-        bonds_prev['{}~{}'.format(nums[0], nums[1])] = bond.GetBondTypeAsDouble()
+        bonds_prev[f'{nums[0]}~{nums[1]}'] = bond.GetBondTypeAsDouble()
     bonds_new = {}
     for bond in products.GetBonds():
         nums = sorted(
             [bond.GetBeginAtom().GetProp('molAtomMapNumber'),
              bond.GetEndAtom().GetProp('molAtomMapNumber')])
-        bonds_new['{}~{}'.format(nums[0], nums[1])] = bond.GetBondTypeAsDouble()
+        bonds_new[f'{nums[0]}~{nums[1]}'] = bond.GetBondTypeAsDouble()
 
-    for bond in bonds_prev:
+    for bond, value in bonds_prev.items():
         if bond not in bonds_new:
             # lost bond
             bond_changes.add((bond.split('~')[0], bond.split('~')[1], 0.0))
-        else:
-            if bonds_prev[bond] != bonds_new[bond]:
-                # changed bond
-                bond_changes.add((bond.split('~')[0], bond.split('~')[1], bonds_new[bond]))
-    for bond in bonds_new:
+        elif value != bonds_new[bond]:
+            # changed bond
+            bond_changes.add((bond.split('~')[0], bond.split('~')[1], bonds_new[bond]))
+    for bond, value_ in bonds_new.items():
         if bond not in bonds_prev:
             # new bond
-            bond_changes.add((bond.split('~')[0], bond.split('~')[1], bonds_new[bond]))
+            bond_changes.add((bond.split('~')[0], bond.split('~')[1], value_))
 
     return bond_changes
 
@@ -254,10 +253,7 @@ def process_line(line):
     """
     reaction = line.strip()
     bond_changes = get_bond_changes(reaction)
-    formatted_reaction = '{} {}\n'.format(
-        reaction, ';'.join(['{}-{}-{}'.format(x[0], x[1], x[2]) for x in bond_changes]))
-
-    return formatted_reaction
+    return f"{reaction} {';'.join([f'{x[0]}-{x[1]}-{x[2]}' for x in bond_changes])}\n"
 
 def process_file(path, num_processes=1):
     """Pre-process a file of reactions for working with WLN.
@@ -272,16 +268,14 @@ def process_file(path, num_processes=1):
     with open(path, 'r') as input_file:
         lines = input_file.readlines()
     if num_processes == 1:
-        results = []
-        for li in lines:
-            results.append(process_line(li))
+        results = [process_line(li) for li in lines]
     else:
         with Pool(processes=num_processes) as pool:
             results = pool.map(process_line, lines)
-    with open(path + '.proc', 'w') as output_file:
+    with open(f'{path}.proc', 'w') as output_file:
         for line in results:
             output_file.write(line)
-    print('Finished processing {}'.format(path))
+    print(f'Finished processing {path}')
 
 def load_one_reaction(line):
     """Load one reaction and check if the reactants are valid.
@@ -421,13 +415,13 @@ class WLNCenterDataset(object):
                  **kwargs):
         super(WLNCenterDataset, self).__init__()
 
-        self._atom_pair_featurizer = atom_pair_featurizer
         self.atom_pair_features = []
         self.atom_pair_labels = []
         # Map number of nodes to a corresponding complete graph
-        self.complete_graphs = dict()
+        self.complete_graphs = {}
 
-        path_to_reaction_file = raw_file_path + '.proc'
+        self._atom_pair_featurizer = atom_pair_featurizer
+        path_to_reaction_file = f'{raw_file_path}.proc'
         built_in = kwargs.get('built_in', False)
         if not built_in:
             print('Pre-processing graph edits from reaction data')
@@ -436,13 +430,15 @@ class WLNCenterDataset(object):
         if check_reaction_validity:
             print('Start checking validity of input reactions for modeling...')
             valid_reactions, invalid_reactions = \
-                reaction_validity_full_check(path_to_reaction_file)
+                    reaction_validity_full_check(path_to_reaction_file)
             print('# valid reactions {:d}'.format(len(valid_reactions)))
             print('# invalid reactions {:d}'.format(len(invalid_reactions)))
-            path_to_valid_reactions = reaction_validity_result_prefix + \
-                                      '_valid_reactions.proc'
-            path_to_invalid_reactions = reaction_validity_result_prefix + \
-                                        '_invalid_reactions.proc'
+            path_to_valid_reactions = (
+                f'{reaction_validity_result_prefix}_valid_reactions.proc'
+            )
+            path_to_invalid_reactions = (
+                f'{reaction_validity_result_prefix}_invalid_reactions.proc'
+            )
             with open(path_to_valid_reactions, 'w') as f:
                 for line in valid_reactions:
                     f.write(line)
@@ -454,7 +450,7 @@ class WLNCenterDataset(object):
         import time
         t0 = time.time()
         full_mols, full_reactions, full_graph_edits = \
-            self.load_reaction_data(path_to_reaction_file, num_processes)
+                self.load_reaction_data(path_to_reaction_file, num_processes)
         print('Time spent', time.time() - t0)
 
         if load and os.path.isfile(mol_graph_path):
@@ -464,10 +460,15 @@ class WLNCenterDataset(object):
             print('Constructing graphs from scratch...')
             if num_processes == 1:
                 self.reactant_mol_graphs = []
-                for mol in full_mols:
-                    self.reactant_mol_graphs.append(mol_to_graph(
-                        mol, node_featurizer=node_featurizer,
-                        edge_featurizer=edge_featurizer, canonical_atom_order=False))
+                self.reactant_mol_graphs.extend(
+                    mol_to_graph(
+                        mol,
+                        node_featurizer=node_featurizer,
+                        edge_featurizer=edge_featurizer,
+                        canonical_atom_order=False,
+                    )
+                    for mol in full_mols
+                )
             else:
                 torch.multiprocessing.set_sharing_strategy('file_system')
                 with Pool(processes=num_processes) as pool:
@@ -627,22 +628,25 @@ class USPTOCenter(WLNCenterDataset):
                  atom_pair_featurizer=default_atom_pair_featurizer,
                  load=True,
                  num_processes=1):
-        assert subset in ['train', 'val', 'test'], \
-            'Expect subset to be "train" or "val" or "test", got {}'.format(subset)
-        print('Preparing {} subset of USPTO for reaction center prediction.'.format(subset))
+        assert subset in [
+            'train',
+            'val',
+            'test',
+        ], f'Expect subset to be "train" or "val" or "test", got {subset}'
+        print(f'Preparing {subset} subset of USPTO for reaction center prediction.')
         self._subset = subset
         if subset == 'val':
             subset = 'valid'
 
         self._url = 'dataset/uspto.zip'
-        data_path = get_download_dir() + '/uspto.zip'
-        extracted_data_path = get_download_dir() + '/uspto'
+        data_path = f'{get_download_dir()}/uspto.zip'
+        extracted_data_path = f'{get_download_dir()}/uspto'
         download(_get_dgl_url(self._url), path=data_path, overwrite=False)
         extract_archive(data_path, extracted_data_path)
 
         super(USPTOCenter, self).__init__(
-            raw_file_path=extracted_data_path + '/{}.txt'.format(subset),
-            mol_graph_path=extracted_data_path + '/{}_mol_graphs.bin'.format(subset),
+            raw_file_path=f'{extracted_data_path}/{subset}.txt',
+            mol_graph_path=f'{extracted_data_path}/{subset}_mol_graphs.bin',
             mol_to_graph=mol_to_graph,
             node_featurizer=node_featurizer,
             edge_featurizer=edge_featurizer,
@@ -650,7 +654,8 @@ class USPTOCenter(WLNCenterDataset):
             load=load,
             num_processes=num_processes,
             check_reaction_validity=False,
-            built_in=True)
+            built_in=True,
+        )
 
     @property
     def subset(self):
@@ -678,9 +683,7 @@ def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
 def load_one_reaction_rank(line):
@@ -786,22 +789,15 @@ def bookkeep_reactant(mol, candidate_pairs):
     """
     num_atoms = mol.GetNumAtoms()
     info = {
-        # free valence of atoms
         'free_val': [0 for _ in range(num_atoms)],
-        # Whether it is a carbon atom
         'is_c': [False for _ in range(num_atoms)],
-        # Whether it is a carbon atom connected to a nitrogen atom in pyridine
         'is_c2_of_pyridine': [False for _ in range(num_atoms)],
-        # Whether it is a phosphorous atom
         'is_p': [False for _ in range(num_atoms)],
-        # Whether it is a sulfur atom
         'is_s': [False for _ in range(num_atoms)],
-        # Whether it is an oxygen atom
         'is_o': [False for _ in range(num_atoms)],
-        # Whether it is a nitrogen atom
         'is_n': [False for _ in range(num_atoms)],
-        'pair_to_bond_val': dict(),
-        'ring_bonds': set()
+        'pair_to_bond_val': {},
+        'ring_bonds': set(),
     }
 
     # bookkeep atoms
@@ -966,11 +962,11 @@ def is_valid_combo(combo_changes, reactant_info):
     free_val_tmp = np.array(free_val_tmp)
     # False if 1) too many connections 2) sulfur valence not even
     # 3) phosphorous valence not odd
-    if any(free_val_tmp < 0) or \
-            any(aval % 2 != 0 for aval in free_val_tmp[force_even_parity]) or \
-            any(aval % 2 != 1 for aval in free_val_tmp[force_odd_parity]):
-        return False
-    return True
+    return (
+        not any(free_val_tmp < 0)
+        and all(aval % 2 == 0 for aval in free_val_tmp[force_even_parity])
+        and all(aval % 2 == 1 for aval in free_val_tmp[force_odd_parity])
+    )
 
 def edit_mol(reactant_mols, edits, product_info):
     """Simulate reaction via graph editing
@@ -1014,7 +1010,7 @@ def edit_mol(reactant_mols, edits, product_info):
         mol = Chem.MolFromSmiles(pred_smiles)
         if mol is None:
             continue
-        atom_set = set([atom.GetAtomMapNum() - 1 for atom in mol.GetAtoms()])
+        atom_set = {atom.GetAtomMapNum() - 1 for atom in mol.GetAtoms()}
         if len(atom_set & product_info['atoms']) == 0:
             continue
         for atom in mol.GetAtoms():
@@ -1093,8 +1089,11 @@ def pre_process_one_reaction(info, num_candidate_bond_changes, max_num_bond_chan
     reactant_info : dict
         Reaction-related information of reactants.
     """
-    assert mode in ['train', 'val', 'test'], \
-        "Expect mode to be 'train' or 'val' or 'test', got {}".format(mode)
+    assert mode in [
+        'train',
+        'val',
+        'test',
+    ], f"Expect mode to be 'train' or 'val' or 'test', got {mode}"
     candidate_bond_changes_, real_bond_changes, reactant_mol, product_mol = info
     candidate_pairs = [(atom1, atom2) for (atom1, atom2, _, _)
                        in candidate_bond_changes_]
@@ -1139,16 +1138,20 @@ def pre_process_one_reaction(info, num_candidate_bond_changes, max_num_bond_chan
 
     if mode == 'train':
         random.shuffle(valid_candidate_combos)
-        # Index for the combo of candidate bond changes
-        # that is equivalent to the gold combo
-        real_combo_id = -1
-        for j, combo_changes in enumerate(valid_candidate_combos):
-            if set([(atom1, atom2, change_type) for
-                    (atom1, atom2, change_type, score) in combo_changes]) == \
-                    set(real_bond_changes):
-                real_combo_id = j
-                break
-
+        real_combo_id = next(
+            (
+                j
+                for j, combo_changes in enumerate(valid_candidate_combos)
+                if {
+                    (atom1, atom2, change_type)(
+                        atom1, atom2, change_type, score
+                    )
+                    in combo_changes
+                }
+                == set(real_bond_changes)
+            ),
+            -1,
+        )
         # If we fail to find the real combo, make it the first entry
         if real_combo_id == -1:
             valid_candidate_combos = \
@@ -1163,7 +1166,7 @@ def pre_process_one_reaction(info, num_candidate_bond_changes, max_num_bond_chan
             reactant_mol, valid_candidate_combos[0], product_info)
         if len(product_smiles) > 0:
             # Remove combos yielding duplicate products
-            product_smiles = set([product_smiles])
+            product_smiles = {product_smiles}
             new_candidate_combos = [valid_candidate_combos[0]]
 
             count = 0
@@ -1206,8 +1209,9 @@ def featurize_nodes_and_compute_combo_scores(
     node_feats = node_featurizer(reactant_mol)['hv']
     combo_bias = torch.zeros(len(valid_candidate_combos), 1).float()
     for combo_id, combo in enumerate(valid_candidate_combos):
-        combo_bias[combo_id] = sum([
-            score for (atom1, atom2, change_type, score) in combo])
+        combo_bias[combo_id] = sum(
+            score for (atom1, atom2, change_type, score) in combo
+        )
 
     return node_feats, combo_bias
 
@@ -1238,14 +1242,10 @@ def construct_graphs_rank(info, edge_featurizer):
         where the first graph is for reactants.
     """
     reactant_mol, candidate_combos, candidate_bond_changes, reactant_info = info
-    # Graphs for reactants and candidate products
-    reaction_graphs = []
-
     # Get graph for the reactants
     reactant_graph = mol_to_bigraph(reactant_mol, edge_featurizer=edge_featurizer,
                                     canonical_atom_order=False)
-    reaction_graphs.append(reactant_graph)
-
+    reaction_graphs = [reactant_graph]
     candidate_bond_changes_no_score = [
         (atom1, atom2, change_type)
         for (atom1, atom2, change_type, score) in candidate_bond_changes]
@@ -1352,15 +1352,18 @@ class WLNRankDataset(object):
                  num_processes=1):
         super(WLNRankDataset, self).__init__()
 
-        assert mode in ['train', 'val', 'test'], \
-            "Expect mode to be 'train' or 'val' or 'test', got {}".format(mode)
+        assert mode in [
+            'train',
+            'val',
+            'test',
+        ], f"Expect mode to be 'train' or 'val' or 'test', got {mode}"
         self.mode = mode
 
         self.ignore_large_samples = False
         self.size_cutoff = size_cutoff
 
         self.reactant_mols, self.product_mols, self.real_bond_changes, \
-        self.ids_for_small_samples = self.load_reaction_data(path_to_reaction_file, num_processes)
+            self.ids_for_small_samples = self.load_reaction_data(path_to_reaction_file, num_processes)
         self.candidate_bond_changes = self.load_candidate_bond_changes(candidate_bond_path)
 
         self.num_candidate_bond_changes = num_candidate_bond_changes
@@ -1442,12 +1445,7 @@ class WLNRankDataset(object):
         with open(file_path, 'r') as f:
             lines = f.readlines()
 
-        all_candidate_bond_changes = []
-        for li in tqdm(lines):
-            all_candidate_bond_changes.append(
-                load_candidate_bond_changes_for_one_reaction(li))
-
-        return all_candidate_bond_changes
+        return [load_candidate_bond_changes_for_one_reaction(li) for li in tqdm(lines)]
 
     def ignore_large(self, ignore=True):
         """Whether to ignore reactions where reactants contain too many atoms.
@@ -1590,9 +1588,12 @@ class USPTORank(WLNRankDataset):
                  num_candidate_bond_changes=16,
                  max_num_change_combos_per_reaction=150,
                  num_processes=1):
-        assert subset in ['train', 'val', 'test'], \
-            'Expect subset to be "train" or "val" or "test", got {}'.format(subset)
-        print('Preparing {} subset of USPTO for product candidate ranking.'.format(subset))
+        assert subset in [
+            'train',
+            'val',
+            'test',
+        ], f'Expect subset to be "train" or "val" or "test", got {subset}'
+        print(f'Preparing {subset} subset of USPTO for product candidate ranking.')
         self._subset = subset
         if subset == 'val':
             mode = 'val'
@@ -1601,20 +1602,21 @@ class USPTORank(WLNRankDataset):
             mode = subset
 
         self._url = 'dataset/uspto.zip'
-        data_path = get_download_dir() + '/uspto.zip'
-        extracted_data_path = get_download_dir() + '/uspto'
+        data_path = f'{get_download_dir()}/uspto.zip'
+        extracted_data_path = f'{get_download_dir()}/uspto'
         download(_get_dgl_url(self._url), path=data_path, overwrite=False)
         extract_archive(data_path, extracted_data_path)
 
         super(USPTORank, self).__init__(
-            path_to_reaction_file=extracted_data_path + '/{}.txt.proc'.format(subset),
+            path_to_reaction_file=f'{extracted_data_path}/{subset}.txt.proc',
             candidate_bond_path=candidate_bond_path,
             mode=mode,
             size_cutoff=size_cutoff,
             max_num_changes_per_reaction=max_num_changes_per_reaction,
             num_candidate_bond_changes=num_candidate_bond_changes,
             max_num_change_combos_per_reaction=max_num_change_combos_per_reaction,
-            num_processes=num_processes)
+            num_processes=num_processes,
+        )
 
     @property
     def subset(self):

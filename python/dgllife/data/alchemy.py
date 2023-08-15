@@ -112,10 +112,7 @@ def alchemy_edges(mol, self_loop=False):
                 continue
 
             e_uv = mol.GetBondBetweenAtoms(u, v)
-            if e_uv is None:
-                bond_type = None
-            else:
-                bond_type = e_uv.GetBondType()
+            bond_type = None if e_uv is None else e_uv.GetBondType()
             bond_feats_dict['e_feat'].append([
                 float(bond_type == x)
                 for x in (Chem.rdchem.BondType.SINGLE,
@@ -185,8 +182,11 @@ class TencentAlchemyDataset(object):
             raise ValueError('The test mode is not supported before '
                              'the alchemy contest finishes.')
 
-        assert mode in ['dev', 'valid', 'test'], \
-            'Expect mode to be dev, valid or test, got {}.'.format(mode)
+        assert mode in [
+            'dev',
+            'valid',
+            'test',
+        ], f'Expect mode to be dev, valid or test, got {mode}.'
 
         self.mode = mode
 
@@ -194,10 +194,7 @@ class TencentAlchemyDataset(object):
         self.load = load
         file_dir = osp.join(get_download_dir(), 'Alchemy_data')
 
-        if load:
-            file_name = "{}_processed_dgl".format(mode)
-        else:
-            file_name = "{}_single_sdf".format(mode)
+        file_name = f"{mode}_processed_dgl" if load else f"{mode}_single_sdf"
         self.file_dir = pathlib.Path(file_dir, file_name)
 
         self._url = 'dataset/alchemy/'
@@ -213,14 +210,16 @@ class TencentAlchemyDataset(object):
 
     def _load(self, mol_to_graph, node_featurizer, edge_featurizer):
         if self.load:
-            self.graphs, label_dict = load_graphs(osp.join(self.file_dir, "{}_graphs.bin".format(self.mode)))
+            self.graphs, label_dict = load_graphs(
+                osp.join(self.file_dir, f"{self.mode}_graphs.bin")
+            )
             self.labels = label_dict['labels']
-            with open(osp.join(self.file_dir, "{}_smiles.txt".format(self.mode)), 'r') as f:
+            with open(osp.join(self.file_dir, f"{self.mode}_smiles.txt"), 'r') as f:
                 smiles_ = f.readlines()
                 self.smiles = [s.strip() for s in smiles_]
         else:
             print('Start preprocessing dataset...')
-            target_file = pathlib.Path(self.file_dir, "{}_target.csv".format(self.mode))
+            target_file = pathlib.Path(self.file_dir, f"{self.mode}_target.csv")
             self.target = pd.read_csv(
                 target_file,
                 index_col=0,
@@ -229,10 +228,8 @@ class TencentAlchemyDataset(object):
             self.graphs, self.labels, self.smiles = [], [], []
 
             supp = Chem.SDMolSupplier(osp.join(self.file_dir, self.mode + ".sdf"))
-            cnt = 0
             dataset_size = len(self.target)
-            for mol, label in zip(supp, self.target.iterrows()):
-                cnt += 1
+            for cnt, (mol, label) in enumerate(zip(supp, self.target.iterrows()), start=1):
                 print('Processing molecule {:d}/{:d}'.format(cnt, dataset_size))
                 graph = mol_to_graph(mol, node_featurizer=node_featurizer,
                                      edge_featurizer=edge_featurizer)
@@ -242,9 +239,12 @@ class TencentAlchemyDataset(object):
                 label = F.tensor(np.array(label[1].tolist()).astype(np.float32))
                 self.labels.append(label)
 
-            save_graphs(osp.join(self.file_dir, "{}_graphs.bin".format(self.mode)), self.graphs,
-                        labels={'labels': F.stack(self.labels, dim=0)})
-            with open(osp.join(self.file_dir, "{}_smiles.txt".format(self.mode)), 'w') as f:
+            save_graphs(
+                osp.join(self.file_dir, f"{self.mode}_graphs.bin"),
+                self.graphs,
+                labels={'labels': F.stack(self.labels, dim=0)},
+            )
+            with open(osp.join(self.file_dir, f"{self.mode}_smiles.txt"), 'w') as f:
                 for s in self.smiles:
                     f.write(s + '\n')
 

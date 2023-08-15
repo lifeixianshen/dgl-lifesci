@@ -160,8 +160,9 @@ def analyze_mols(smiles=None, mols=None, num_processes=1, path_to_export=None):
      'bond_stereo_configuration_frequency': {'STEREONONE': 2},
      'bond_direction_frequency': {'NONE': 2}}
     """
-    assert not ((smiles is None) and (mols is None)), \
-        'At least one of the smiles and mols should not be None'
+    assert (
+        smiles is not None or mols is not None
+    ), 'At least one of the smiles and mols should not be None'
     assert num_processes >= 1, \
         'Expect num_processes to be no smaller than 1, got {:d}'.format(num_processes)
 
@@ -171,11 +172,14 @@ def analyze_mols(smiles=None, mols=None, num_processes=1, path_to_export=None):
                   'num_radical_electrons', 'aromatic_atom', 'chirality_tag']
     bond_items = ['bond_type', 'conjugated_bond', 'bond_stereo_configuration', 'bond_direction']
 
-    # Holder of the analysis results
-    summary = dict()
-    for item in list(itertools.chain.from_iterable([general_items, atom_items, bond_items])):
-        summary[item] = []
-
+    summary = {
+        item: []
+        for item in list(
+            itertools.chain.from_iterable(
+                [general_items, atom_items, bond_items]
+            )
+        )
+    }
     # Check validity
     if mols is None:
         mols = []
@@ -184,24 +188,18 @@ def analyze_mols(smiles=None, mols=None, num_processes=1, path_to_export=None):
             if smi_mol is not None:
                 mols.append(smi_mol)
         summary['num_input_mols'] = len(smiles)
-        summary['num_valid_mols'] = len(mols)
     else:
         summary['num_input_mols'] = len(mols)
-        mols_ = []
-        for smi_mol in mols:
-            if smi_mol is not None:
-                mols_.append(smi_mol)
+        mols_ = [smi_mol for smi_mol in mols if smi_mol is not None]
         mols = mols_
-        summary['num_valid_mols'] = len(mols)
+    summary['num_valid_mols'] = len(mols)
     summary['valid_proportion'] = summary['num_valid_mols'] / summary['num_input_mols']
 
     # Get canonicalized SMILES
     summary['cano_smi'] = [Chem.MolToSmiles(smi_mol) for smi_mol in mols]
 
     if num_processes == 1:
-        summary_per_mol = []
-        for smi_mol in mols:
-            summary_per_mol.append(summarize_a_mol(smi_mol))
+        summary_per_mol = [summarize_a_mol(smi_mol) for smi_mol in mols]
     else:
         with Pool(processes=num_processes) as pool:
             summary_per_mol = pool.map(summarize_a_mol, mols)
@@ -213,42 +211,46 @@ def analyze_mols(smiles=None, mols=None, num_processes=1, path_to_export=None):
             summary[key].extend(list(mol_summary[key]))
 
     for item in list(itertools.chain.from_iterable([atom_items, bond_items])):
-        summary[item + '_frequency'] = count_frequency(summary[item])
+        summary[f'{item}_frequency'] = count_frequency(summary[item])
         del summary[item]
 
     if path_to_export is None:
         return summary
 
     # Export the analysis results to local files
-    with open(path_to_export + '/valid_canonical_smiles.txt', 'w') as file:
+    with open(f'{path_to_export}/valid_canonical_smiles.txt', 'w') as file:
         for smi in summary['cano_smi']:
             file.write(smi + '\n')
 
-    with open(path_to_export + '/summary.txt', 'w') as file:
+    with open(f'{path_to_export}/summary.txt', 'w') as file:
         file.write('General statistics\n')
         file.write('=' * 60 + '\n')
-        file.write('Number of input molecules: {}\n'.format(summary['num_input_mols']))
-        file.write('Number of valid molecules: {}\n'.format(summary['num_valid_mols']))
-        file.write('Percentage of valid molecules: {} %\n'.format(
-            summary['valid_proportion'] * 100))
-        file.write('Average number of atoms per molecule: {} +- {}\n'.format(
-            np.mean(summary['num_atoms']), np.std(summary['num_atoms'])))
-        file.write('Average number of bonds per molecule: {} +- {}\n'.format(
-            np.mean(summary['num_bonds']), np.std(summary['num_bonds'])))
-        file.write('Average number of rings per molecule: {} +- {}\n'.format(
-            np.mean(summary['num_rings']), np.std(summary['num_rings'])))
+        file.write(f"Number of input molecules: {summary['num_input_mols']}\n")
+        file.write(f"Number of valid molecules: {summary['num_valid_mols']}\n")
+        file.write(
+            f"Percentage of valid molecules: {summary['valid_proportion'] * 100} %\n"
+        )
+        file.write(
+            f"Average number of atoms per molecule: {np.mean(summary['num_atoms'])} +- {np.std(summary['num_atoms'])}\n"
+        )
+        file.write(
+            f"Average number of bonds per molecule: {np.mean(summary['num_bonds'])} +- {np.std(summary['num_bonds'])}\n"
+        )
+        file.write(
+            f"Average number of rings per molecule: {np.mean(summary['num_rings'])} +- {np.std(summary['num_rings'])}\n"
+        )
         file.write('\n')
 
         file.write('Atom statistics\n')
         file.write('=' * 60 + '\n')
         for item in atom_items:
-            file.write('{} frequency: {}\n'.format(item, summary[item + '_frequency']))
+            file.write(f"{item} frequency: {summary[f'{item}_frequency']}\n")
         file.write('\n')
 
         file.write('Bond statistics\n')
         file.write('=' * 60 + '\n')
         for item in bond_items:
-            file.write('{} frequency: {}\n'.format(item, summary[item + '_frequency']))
+            file.write(f"{item} frequency: {summary[f'{item}_frequency']}\n")
         file.write('\n')
 
     return summary

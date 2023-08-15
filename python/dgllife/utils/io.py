@@ -111,15 +111,14 @@ def load_molecule(molecule_file, sanitize=False, calc_charges=False,
     elif molecule_file.endswith('.pdbqt'):
         with open(molecule_file) as file:
             pdbqt_data = file.readlines()
-        pdb_block = ''
-        for line in pdbqt_data:
-            pdb_block += '{}\n'.format(line[:66])
+        pdb_block = ''.join(f'{line[:66]}\n' for line in pdbqt_data)
         mol = Chem.MolFromPDBBlock(pdb_block, sanitize=False, removeHs=False)
     elif molecule_file.endswith('.pdb'):
         mol = Chem.MolFromPDBFile(molecule_file, sanitize=False, removeHs=False)
     else:
-        return ValueError('Expect the format of the molecule_file to be '
-                          'one of .mol2, .sdf, .pdbqt and .pdb, got {}'.format(molecule_file))
+        return ValueError(
+            f'Expect the format of the molecule_file to be one of .mol2, .sdf, .pdbqt and .pdb, got {molecule_file}'
+        )
 
     try:
         if sanitize or calc_charges:
@@ -137,11 +136,7 @@ def load_molecule(molecule_file, sanitize=False, calc_charges=False,
     except:
         return None, None
 
-    if use_conformation:
-        coordinates = get_mol_3d_coordinates(mol)
-    else:
-        coordinates = None
-
+    coordinates = get_mol_3d_coordinates(mol) if use_conformation else None
     return mol, coordinates
 
 def multiprocess_load_molecules(files, sanitize=False, calc_charges=False,
@@ -180,11 +175,16 @@ def multiprocess_load_molecules(files, sanitize=False, calc_charges=False,
         it will be None.
     """
     if num_processes == 1:
-        mols_loaded = []
-        for f in files:
-            mols_loaded.append(load_molecule(
-                f, sanitize=sanitize, calc_charges=calc_charges,
-                remove_hs=remove_hs, use_conformation=use_conformation))
+        mols_loaded = [
+            load_molecule(
+                f,
+                sanitize=sanitize,
+                calc_charges=calc_charges,
+                remove_hs=remove_hs,
+                use_conformation=use_conformation,
+            )
+            for f in files
+        ]
     else:
         with Pool(processes=num_processes) as pool:
             mols_loaded = pool.map_async(partial(
@@ -209,9 +209,7 @@ def load_smiles_from_txt(file):
     """
     smiles = []
     with open(file, 'r') as f:
-        for line in f.readlines():
-            smiles.append(line.strip())
-
+        smiles.extend(line.strip() for line in f)
     return smiles
 
 def pmap(pickleable_fn, data, n_jobs=None, verbose=1, **kwargs):

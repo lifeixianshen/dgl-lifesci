@@ -17,9 +17,7 @@ def get_lib_path():
     libinfo_py = os.path.join(CURRENT_DIR, './dgllife/libinfo.py')
     libinfo = {'__file__': libinfo_py}
     exec(compile(open(libinfo_py, "rb").read(), libinfo_py, 'exec'), libinfo, libinfo)
-    version = libinfo['__version__']
-
-    return version
+    return libinfo['__version__']
 
 VERSION = get_lib_path()
 

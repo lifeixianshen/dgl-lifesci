@@ -12,15 +12,13 @@ from tqdm import tqdm
 def train(model, device, loader, criterion, optimizer):
     model.train()
 
-    for step, batch in enumerate(tqdm(loader, desc="Iteration")):
+    for batch in tqdm(loader, desc="Iteration"):
         bg, labels = batch
         nfeats = bg.ndata['h']
         efeats = bg.edata['feat']
         labels, nfeats, efeats = labels.to(device), nfeats.to(device), efeats.to(device)
         # only one node
-        if bg.batch_size == 1:
-            pass
-        else:
+        if bg.batch_size != 1:
             pred = model(bg, nfeats, efeats)
             optimizer.zero_grad()
             loss = criterion(pred.to(torch.float32), labels.view(-1,))
@@ -32,15 +30,13 @@ def eval(model, device, loader, evaluator):
     y_true = []
     y_pred = []
 
-    for step, batch in enumerate(tqdm(loader, desc="Iteration")):
+    for batch in tqdm(loader, desc="Iteration"):
         bg, labels = batch
         nfeats = bg.ndata['h']
         efeats = bg.edata['feat']
         labels, nfeats, efeats = labels.to(device), nfeats.to(device), efeats.to(device)
         # only one node
-        if bg.batch_size == 1:
-            pass
-        else:
+        if bg.batch_size != 1:
             with torch.no_grad():
                 pred = model(bg, nfeats, efeats)
 
@@ -103,19 +99,19 @@ def main():
     test_loader = DataLoader(dataset[splitted_idx["test"]], batch_size=args.batch_size,
                              shuffle=False, collate_fn=collate_dgl, num_workers=args.num_workers)
 
-    if args.gnn == 'gin':
-        gnn_type = 'gin'
-        virtual_node = False
     if args.gnn == 'gcn':
         gnn_type = 'gcn'
         virtual_node = False
-    if args.gnn == 'gin-virtual':
-        gnn_type = 'gin'
-        virtual_node = True
-    if args.gnn == 'gcn-virtual':
+    elif args.gnn == 'gcn-virtual':
         gnn_type = 'gcn'
         virtual_node = True
 
+    elif args.gnn == 'gin':
+        gnn_type = 'gin'
+        virtual_node = False
+    elif args.gnn == 'gin-virtual':
+        gnn_type = 'gin'
+        virtual_node = True
     model = GNNOGBPredictor(in_edge_feats=dataset[0][0].edata['feat'].shape[-1],
                             hidden_feats=args.hidden_feats,
                             n_layers=args.n_layers,
@@ -133,7 +129,7 @@ def main():
     time_curve = []
 
     for epoch in range(1, args.epochs + 1):
-        print("=====Epoch {}".format(epoch))
+        print(f"=====Epoch {epoch}")
         print('Training...')
         t0 = time.time()
         train(model, device, train_loader, criterion, optimizer)
@@ -154,13 +150,13 @@ def main():
         test_curve.append(test_perf['acc'])
 
     best_val_epoch = np.argmax(np.array(valid_curve))
-    best_train = max(train_curve)
-
     print('Finished training!')
-    print('Best validation score: {}'.format(valid_curve[best_val_epoch]))
-    print('Test score: {}'.format(test_curve[best_val_epoch]))
+    print(f'Best validation score: {valid_curve[best_val_epoch]}')
+    print(f'Test score: {test_curve[best_val_epoch]}')
     print('Avg Training Time: ', np.mean(time_curve))
-    if not args.filename == '':
+    if args.filename != '':
+        best_train = max(train_curve)
+
         torch.save({'Val': valid_curve[best_val_epoch], 'Test': test_curve[best_val_epoch],
                     'Train': train_curve[best_val_epoch], 'BestTrain': best_train}, args.filename)
 

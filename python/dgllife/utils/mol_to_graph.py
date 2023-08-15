@@ -398,9 +398,9 @@ def construct_complete_graph_from_mol(mol, add_self_loop=False):
             if i != j or add_self_loop:
                 src.append(i)
                 dst.append(j)
-    g = dgl.graph((torch.IntTensor(src), torch.IntTensor(dst)), idtype=torch.int32)
-
-    return g
+    return dgl.graph(
+        (torch.IntTensor(src), torch.IntTensor(dst)), idtype=torch.int32
+    )
 
 def mol_to_complete_graph(mol, add_self_loop=False,
                           node_featurizer=None,

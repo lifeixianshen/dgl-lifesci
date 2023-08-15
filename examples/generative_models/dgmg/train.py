@@ -21,7 +21,7 @@ def evaluate(epoch, model, data_loader, printer):
     batch_size = data_loader.batch_size
     total_log_prob = 0
     with torch.no_grad():
-        for i, data in enumerate(data_loader):
+        for data in data_loader:
             log_prob = model(actions=data, compute_log_prob=True).detach()
             total_log_prob -= log_prob
             if printer is not None:
@@ -92,7 +92,7 @@ def main(rank, args):
         if rank == 0:
             print('Training')
 
-        for i, data in enumerate(train_loader):
+        for data in train_loader:
             log_prob = model(actions=data, compute_log_prob=True)
             prob = log_prob.detach().exp()
 

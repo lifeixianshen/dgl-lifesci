@@ -80,9 +80,7 @@ class GCNOGBLayer(nn.Module):
         residual_node_feats = F.relu(residual_node_feats)
         residual_node_feats = residual_node_feats * 1. / degs.view(-1, 1)
 
-        rst = g.ndata['feat'] + residual_node_feats
-
-        return rst
+        return g.ndata['feat'] + residual_node_feats
 
 class GINOGBLayer(nn.Module):
     r"""Variant of Single GIN layer from `Open Graph Benchmark: Datasets for Machine Learning on
@@ -191,8 +189,10 @@ class GNNOGB(nn.Module):
                  jk=False):
         super(GNNOGB, self).__init__()
 
-        assert gnn_type in ['gcn', 'gin'], \
-            "Expect gnn_type to be either 'gcn' or 'gin', got {}".format(gnn_type)
+        assert gnn_type in [
+            'gcn',
+            'gin',
+        ], f"Expect gnn_type to be either 'gcn' or 'gin', got {gnn_type}"
 
         self.n_layers = n_layers
         # Initial node embeddings
@@ -311,7 +311,4 @@ class GNNOGB(nn.Module):
                     virtual_node_feats = self.dropout(
                         self.mlp_virtual_project[l](virtual_node_feats_tmp))
 
-        if self.jk:
-            return torch.stack(h_list, dim=0).sum(0)
-        else:
-            return h_list[-1]
+        return torch.stack(h_list, dim=0).sum(0) if self.jk else h_list[-1]

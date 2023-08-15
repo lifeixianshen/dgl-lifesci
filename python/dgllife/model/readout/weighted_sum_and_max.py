@@ -52,5 +52,4 @@ class WeightedSumAndMax(nn.Module):
         with bg.local_scope():
             bg.ndata['h'] = feats
             h_g_max = dgl.max_nodes(bg, 'h')
-        h_g = torch.cat([h_g_sum, h_g_max], dim=1)
-        return h_g
+        return torch.cat([h_g_sum, h_g_max], dim=1)

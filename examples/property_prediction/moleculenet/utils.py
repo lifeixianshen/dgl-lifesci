@@ -41,8 +41,8 @@ def init_featurizer(args):
         args['node_featurizer'] = AttentiveFPAtomFeaturizer()
     else:
         return ValueError(
-            "Expect featurizer_type to be in ['canonical', 'attentivefp'], "
-            "got {}".format(args['featurizer_type']))
+            f"Expect featurizer_type to be in ['canonical', 'attentivefp'], got {args['featurizer_type']}"
+        )
 
     if args['model'] in ['Weave', 'MPNN', 'AttentiveFP']:
         if args['featurizer_type'] == 'canonical':
@@ -66,10 +66,10 @@ def mkdir_p(path):
     """
     try:
         os.makedirs(path)
-        print('Created directory {}'.format(path))
+        print(f'Created directory {path}')
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
-            print('Directory {} already exists.'.format(path))
+            print(f'Directory {path} already exists.')
         else:
             raise
 
@@ -101,7 +101,9 @@ def split_dataset(args, dataset):
         train_set, val_set, test_set = RandomSplitter.train_val_test_split(
             dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio)
     else:
-        return ValueError("Expect the splitting method to be 'scaffold', got {}".format(args['split']))
+        return ValueError(
+            f"Expect the splitting method to be 'scaffold', got {args['split']}"
+        )
 
     return train_set, val_set, test_set
 
@@ -123,10 +125,10 @@ def get_configure(model, featurizer_type, dataset):
         Returns the manually specified configuration
     """
     if featurizer_type == 'pre_train':
-        with open('configures/{}/{}.json'.format(dataset, model), 'r') as f:
+        with open(f'configures/{dataset}/{model}.json', 'r') as f:
             config = json.load(f)
     else:
-        with open('configures/{}/{}_{}.json'.format(dataset, model, featurizer_type), 'r') as f:
+        with open(f'configures/{dataset}/{model}_{featurizer_type}.json', 'r') as f:
             config = json.load(f)
     return config
 
@@ -248,10 +250,9 @@ def load_model(exp_configure):
         model.gnn = load_pretrained(exp_configure['model'])
         model.gnn.JK = exp_configure['jk']
     else:
-        return ValueError("Expect model to be from ['GCN', 'GAT', 'Weave', 'MPNN', 'AttentiveFP', "
-                          "'gin_supervised_contextpred', 'gin_supervised_infomax', "
-                          "'gin_supervised_edgepred', 'gin_supervised_masking'], "
-                          "got {}".format(exp_configure['model']))
+        return ValueError(
+            f"Expect model to be from ['GCN', 'GAT', 'Weave', 'MPNN', 'AttentiveFP', 'gin_supervised_contextpred', 'gin_supervised_infomax', 'gin_supervised_edgepred', 'gin_supervised_masking'], got {exp_configure['model']}"
+        )
 
     return model
 

@@ -44,8 +44,8 @@ def init_featurizer(args):
         args['node_featurizer'] = AttentiveFPAtomFeaturizer()
     else:
         return ValueError(
-            "Expect node_featurizer to be in ['canonical', 'attentivefp'], "
-            "got {}".format(args['atom_featurizer_type']))
+            f"Expect node_featurizer to be in ['canonical', 'attentivefp'], got {args['atom_featurizer_type']}"
+        )
 
     if args['model'] in ['Weave', 'MPNN', 'AttentiveFP']:
         if args['bond_featurizer_type'] == 'canonical':
@@ -60,16 +60,16 @@ def init_featurizer(args):
     return args
 
 def load_dataset(args, df):
-    dataset = MoleculeCSVDataset(df=df,
-                                 smiles_to_graph=partial(smiles_to_bigraph, add_self_loop=True),
-                                 node_featurizer=args['node_featurizer'],
-                                 edge_featurizer=args['edge_featurizer'],
-                                 smiles_column=args['smiles_column'],
-                                 cache_file_path=args['result_path'] + '/graph.bin',
-                                 task_names=args['task_names'],
-                                 n_jobs=args['num_workers'])
-
-    return dataset
+    return MoleculeCSVDataset(
+        df=df,
+        smiles_to_graph=partial(smiles_to_bigraph, add_self_loop=True),
+        node_featurizer=args['node_featurizer'],
+        edge_featurizer=args['edge_featurizer'],
+        smiles_column=args['smiles_column'],
+        cache_file_path=args['result_path'] + '/graph.bin',
+        task_names=args['task_names'],
+        n_jobs=args['num_workers'],
+    )
 
 def get_configure(model):
     """Query for the manually specified configuration
@@ -84,7 +84,7 @@ def get_configure(model):
     dict
         Returns the manually specified configuration
     """
-    with open('model_configures/{}.json'.format(model), 'r') as f:
+    with open(f'model_configures/{model}.json', 'r') as f:
         config = json.load(f)
     return config
 
@@ -98,10 +98,10 @@ def mkdir_p(path):
     """
     try:
         os.makedirs(path)
-        print('Created directory {}'.format(path))
+        print(f'Created directory {path}')
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
-            print('Directory {} already exists.'.format(path))
+            print(f'Directory {path} already exists.')
         else:
             raise
 
@@ -161,7 +161,9 @@ def split_dataset(args, dataset):
         train_set, val_set, test_set = RandomSplitter.train_val_test_split(
             dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio)
     else:
-        return ValueError("Expect the splitting method to be 'scaffold', got {}".format(args['split']))
+        return ValueError(
+            f"Expect the splitting method to be 'scaffold', got {args['split']}"
+        )
 
     return train_set, val_set, test_set
 
@@ -303,10 +305,9 @@ def load_model(exp_configure):
         model.gnn = load_pretrained(exp_configure['model'])
         model.gnn.JK = exp_configure['jk']
     else:
-        return ValueError("Expect model to be from ['GCN', 'GAT', 'Weave', 'MPNN', 'AttentiveFP', "
-                          "'gin_supervised_contextpred', 'gin_supervised_infomax', "
-                          "'gin_supervised_edgepred', 'gin_supervised_masking'], "
-                          "got {}".format(exp_configure['model']))
+        return ValueError(
+            f"Expect model to be from ['GCN', 'GAT', 'Weave', 'MPNN', 'AttentiveFP', 'gin_supervised_contextpred', 'gin_supervised_infomax', 'gin_supervised_edgepred', 'gin_supervised_masking'], got {exp_configure['model']}"
+        )
 
     return model
 

@@ -68,10 +68,15 @@ class GNNOGBPredictor(nn.Module):
                  readout='mean'):
         super(GNNOGBPredictor, self).__init__()
 
-        assert gnn_type in ['gcn', 'gin'], \
-            "Expect gnn_type to be 'gcn' or 'gin', got {}".format(gnn_type)
-        assert readout in ['mean', 'sum', 'max'], \
-            "Expect readout to be in ['mean', 'sum', 'max'], got {}".format(readout)
+        assert gnn_type in [
+            'gcn',
+            'gin',
+        ], f"Expect gnn_type to be 'gcn' or 'gin', got {gnn_type}"
+        assert readout in [
+            'mean',
+            'sum',
+            'max',
+        ], f"Expect readout to be in ['mean', 'sum', 'max'], got {readout}"
 
         self.gnn = GNNOGB(in_edge_feats=in_edge_feats,
                           num_node_types=num_node_types,

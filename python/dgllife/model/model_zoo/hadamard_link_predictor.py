@@ -87,6 +87,4 @@ class HadamardLinkPredictor(nn.Module):
             if self.activation is not None:
                 pair_feats = self.activation(pair_feats)
             pair_feats = self.dropout(pair_feats)
-        out = self.layers[-1](pair_feats)
-
-        return out
+        return self.layers[-1](pair_feats)

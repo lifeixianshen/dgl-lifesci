@@ -29,8 +29,11 @@ def main(args):
                        hidden_size=args.hidden_size,
                        latent_size=args.latent_size,
                        depth=args.depth)
-    print("# model parameters: {:d}K".format(
-        sum([x.nelement() for x in model.parameters()]) // 1000))
+    print(
+        "# model parameters: {:d}K".format(
+            sum(x.nelement() for x in model.parameters()) // 1000
+        )
+    )
 
     if args.model_path is not None:
         model.load_state_dict(torch.load(args.model_path))
@@ -94,7 +97,7 @@ def main(args):
 
         scheduler.step()
         print("learning rate: %.6f" % scheduler.get_lr()[0])
-        torch.save(model.state_dict(), args.save_path + "/model.iter-" + str(epoch))
+        torch.save(model.state_dict(), f"{args.save_path}/model.iter-{str(epoch)}")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

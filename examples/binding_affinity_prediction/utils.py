@@ -44,7 +44,7 @@ def load_dataset(args):
     val_set
         Validation subset of the dataset.
     """
-    assert args['dataset'] in ['PDBBind'], 'Unexpected dataset {}'.format(args['dataset'])
+    assert args['dataset'] in ['PDBBind'], f"Unexpected dataset {args['dataset']}"
     if args['dataset'] == 'PDBBind':
         dataset = PDBBind(subset=args['subset'],
                           load_binding_pocket=args['load_binding_pocket'],
@@ -89,8 +89,9 @@ def load_dataset(args):
                 for offset, length in zip(accumulate(lengths), lengths)]
 
         else:
-            raise ValueError('Expect the splitting method '
-                             'to be "random" or "scaffold", got {}'.format(args['split']))
+            raise ValueError(
+                f"""Expect the splitting method to be "random" or "scaffold", got {args['split']}"""
+            )
         train_labels = torch.stack([train_set.dataset.labels[i] for i in train_set.indices])
         train_set.labels_mean = train_labels.mean(dim=0)
         train_set.labels_std = train_labels.std(dim=0)
@@ -109,7 +110,7 @@ def collate(data):
     return indices, ligand_mols, protein_mols, bg, labels
 
 def load_model(args):
-    assert args['model'] in ['ACNN'], 'Unexpected model {}'.format(args['model'])
+    assert args['model'] in ['ACNN'], f"Unexpected model {args['model']}"
     if args['model'] == 'ACNN':
         model = ACNN(hidden_sizes=args['hidden_sizes'],
                      weight_init_stddevs=args['weight_init_stddevs'],

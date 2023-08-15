@@ -47,10 +47,7 @@ class GINLayer(nn.Module):
             emb_module = nn.Embedding(num_emb, emb_dim)
             self.edge_embeddings.append(emb_module)
 
-        if batch_norm:
-            self.bn = nn.BatchNorm1d(emb_dim)
-        else:
-            self.bn = None
+        self.bn = nn.BatchNorm1d(emb_dim) if batch_norm else None
         self.activation = activation
         self.reset_parameters()
 
@@ -87,9 +84,10 @@ class GINLayer(nn.Module):
         node_feats : float32 tensor of shape (N, emb_dim)
             Output node representations
         """
-        edge_embeds = []
-        for i, feats in enumerate(categorical_edge_feats):
-            edge_embeds.append(self.edge_embeddings[i](feats))
+        edge_embeds = [
+            self.edge_embeddings[i](feats)
+            for i, feats in enumerate(categorical_edge_feats)
+        ]
         edge_embeds = torch.stack(edge_embeds, dim=0).sum(0)
         g = g.local_var()
         g.ndata['feat'] = node_feats
@@ -198,9 +196,10 @@ class GIN(nn.Module):
             M for output size. In particular, M will be emb_dim * (num_layers + 1)
             if self.JK == 'concat' and emb_dim otherwise.
         """
-        node_embeds = []
-        for i, feats in enumerate(categorical_node_feats):
-            node_embeds.append(self.node_embeddings[i](feats))
+        node_embeds = [
+            self.node_embeddings[i](feats)
+            for i, feats in enumerate(categorical_node_feats)
+        ]
         node_embeds = torch.stack(node_embeds, dim=0).sum(0)
 
         all_layer_node_feats = [node_embeds]
@@ -221,7 +220,8 @@ class GIN(nn.Module):
             all_layer_node_feats = [h.unsqueeze(0) for h in all_layer_node_feats]
             final_node_feats = torch.sum(torch.cat(all_layer_node_feats, dim=0), dim=0)
         else:
-            return ValueError("Expect self.JK to be 'concat', 'last', "
-                              "'max' or 'sum', got {}".format(self.JK))
+            return ValueError(
+                f"Expect self.JK to be 'concat', 'last', 'max' or 'sum', got {self.JK}"
+            )
 
         return final_node_feats

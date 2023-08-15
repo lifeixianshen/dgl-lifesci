@@ -91,8 +91,9 @@ class GINPredictor(nn.Module):
                 self.readout = GlobalAttentionPooling(
                     gate_nn=nn.Linear(emb_dim, 1))
         else:
-            raise ValueError("Expect readout to be 'sum', 'mean', "
-                             "'max' or 'attention', got {}".format(readout))
+            raise ValueError(
+                f"Expect readout to be 'sum', 'mean', 'max' or 'attention', got {readout}"
+            )
 
         if JK == 'concat':
             self.predict = nn.Linear((num_layers + 1) * emb_dim, n_tasks)

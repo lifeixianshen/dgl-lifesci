@@ -58,11 +58,11 @@ def create_generative_model(model_name):
 
     elif model_name == "JTNN_ZINC":
         default_dir = get_download_dir()
-        vocab_file = '{}/jtvae/{}.txt'.format(default_dir, 'vocab')
+        vocab_file = f'{default_dir}/jtvae/vocab.txt'
         if not os.path.exists(vocab_file):
-            zip_file_path = '{}/jtvae.zip'.format(default_dir)
+            zip_file_path = f'{default_dir}/jtvae.zip'
             download(_get_dgl_url('dataset/jtvae.zip'), path=zip_file_path)
-            extract_archive(zip_file_path, '{}/jtvae'.format(default_dir))
+            extract_archive(zip_file_path, f'{default_dir}/jtvae')
         return DGLJTNNVAE(vocab_file=vocab_file,
                           depth=3,
                           hidden_size=450,

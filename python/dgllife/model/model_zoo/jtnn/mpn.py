@@ -84,10 +84,7 @@ class DGLMPN(nn.Module):
 
         mol_graph = self.run(mol_graph, mol_line_graph)
 
-        # TODO: replace with unbatch or readout
-        g_repr = mean_nodes(mol_graph, 'h')
-
-        return g_repr
+        return mean_nodes(mol_graph, 'h')
 
     def run(self, mol_graph, mol_line_graph):
         n_nodes = mol_graph.num_nodes()
@@ -112,7 +109,7 @@ class DGLMPN(nn.Module):
             'h': bond_features.new(n_nodes, self.hidden_size).zero_(),
         })
 
-        for i in range(self.depth - 1):
+        for _ in range(self.depth - 1):
             mol_line_graph.update_all(
                 mpn_loopy_bp_msg,
                 mpn_loopy_bp_reduce,

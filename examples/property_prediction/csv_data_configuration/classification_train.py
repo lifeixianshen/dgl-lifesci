@@ -48,7 +48,7 @@ def run_an_eval_epoch(args, model, data_loader):
     model.eval()
     eval_meter = Meter()
     with torch.no_grad():
-        for batch_id, batch_data in enumerate(data_loader):
+        for batch_data in data_loader:
             smiles, bg, labels, masks = batch_data
             labels = labels.to(args['device'])
             logits = predict(args, model, bg)
@@ -105,8 +105,8 @@ def main(args, exp_config, train_set, val_set, test_set):
     print('test {} {:.4f}'.format(args['metric'], test_score))
 
     with open(args['trial_path'] + '/eval.txt', 'w') as f:
-        f.write('Best val {}: {}\n'.format(args['metric'], stopper.best_score))
-        f.write('Test {}: {}\n'.format(args['metric'], test_score))
+        f.write(f"Best val {args['metric']}: {stopper.best_score}\n")
+        f.write(f"Test {args['metric']}: {test_score}\n")
 
     with open(args['trial_path'] + '/configure.json', 'w') as f:
         json.dump(exp_config, f, indent=2)
